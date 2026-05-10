@@ -17,6 +17,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from operator import itemgetter
 from utils import load_config
+import os
 import chromadb
 
 config = load_config()
@@ -27,8 +28,21 @@ def load_ollama_model():
     return llm
 
 
+class MockLLM:
+    def __init__(self):
+        pass
+    def invoke(self, input, **kwargs):
+        return {"text": " [MOCK MODE] I am running in mock mode because the local GGUF models were not found. I can still help you test the UI and logic!"}
+    def bind(self, **kwargs):
+        return self
+
 def create_llm(model_path=config["ctransformers"]["model_path"]["large"],
                model_type=config["ctransformers"]["model_type"], model_config=config["ctransformers"]["model_config"]):
+    
+    if not os.path.exists(model_path):
+        print(f"Model path {model_path} not found. Switching to Mock Mode.")
+        return MockLLM()
+        
     llm = CTransformers(model=model_path, model_type=model_type, config=model_config)
     return llm
 

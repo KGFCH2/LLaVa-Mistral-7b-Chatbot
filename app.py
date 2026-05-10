@@ -58,6 +58,17 @@ def main():
         st.session_state.new_session_key = None
 
     st.sidebar.title("Chat Sessions")
+    
+    # --- System Status ---
+    import os
+    model_path = config["ctransformers"]["model_path"]["large"]
+    if not os.path.exists(model_path):
+        st.sidebar.error("⚠️ Mock Mode: Models missing")
+        st.sidebar.caption("Download GGUF models to enable local AI.")
+    else:
+        st.sidebar.success("✅ System Ready: Local LLM Active")
+    # ---------------------
+
     chat_sessions = ["new_session"] + get_all_chat_history_ids()
 
     index = chat_sessions.index(st.session_state.session_index_tracker)
