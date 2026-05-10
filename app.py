@@ -33,7 +33,7 @@ def get_session_key():
 
 
 def delete_chat_session_history():
-    delete_chat_history(st.session_state.session_key)
+    delete_chat_history(st.session_state.db_conn, st.session_state.session_key)
     st.session_state.session_index_tracker = "new_session"
 
 
@@ -69,7 +69,7 @@ def main():
         st.sidebar.success("✅ System Ready: Local LLM Active")
     # ---------------------
 
-    chat_sessions = ["new_session"] + get_all_chat_history_ids()
+    chat_sessions = ["new_session"] + get_all_chat_history_ids(st.session_state.db_conn)
 
     index = chat_sessions.index(st.session_state.session_index_tracker)
     st.sidebar.selectbox("Select a chat session", chat_sessions, key="session_key", index=index)
@@ -119,9 +119,9 @@ def main():
         if uploaded_image:
             with st.spinner("Processing image..."):
                 llm_answer = handle_image(uploaded_image.getvalue(), user_input)
-                save_text_message(get_session_key(), "human", user_input)
-                save_image_message(get_session_key(), "human", uploaded_image.getvalue())
-                save_text_message(get_session_key(), "ai", llm_answer)
+                save_text_message(st.session_state.db_conn, get_session_key(), "human", user_input)
+                save_image_message(st.session_state.db_conn, get_session_key(), "human", uploaded_image.getvalue())
+                save_text_message(st.session_state.db_conn, get_session_key(), "ai", llm_answer)
                 user_input = None
 
         if user_input:
@@ -135,7 +135,7 @@ def main():
 
     if (st.session_state.session_key != "new_session") != (st.session_state.new_session_key != None):
         with chat_container:
-            chat_history_messages = load_messages(get_session_key())
+            chat_history_messages = load_messages(st.session_state.db_conn, get_session_key())
 
             for message in chat_history_messages:
                 with st.chat_message(name=message["sender_type"]):
