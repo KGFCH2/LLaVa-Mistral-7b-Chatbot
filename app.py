@@ -1,6 +1,6 @@
-import streamlit as st
-from llm_chains import load_normal_chain, load_pdf_chat_chain
-from streamlit_mic_recorder import mic_recorder
+import streamlit as st # pyrefly: ignore [missing-import]
+from llm_chains import load_normal_chain, load_pdf_chat_chain # pyrefly: ignore [missing-import]
+from streamlit_mic_recorder import mic_recorder # pyrefly: ignore [missing-import]
 from utils import get_timestamp, load_config
 from image_handler import handle_image
 from audio_handler import transcribe_audio
@@ -19,7 +19,6 @@ from database_operations import (
 import sqlite3
 
 config = load_config()
-
 
 @st.cache_resource
 def load_chain():

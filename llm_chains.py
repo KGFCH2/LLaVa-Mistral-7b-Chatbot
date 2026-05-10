@@ -1,24 +1,24 @@
 from prompt_templates import memory_prompt_template, pdf_chat_prompt
 
 # Fixed imports for LangChain 2026
-from langchain_classic.chains import LLMChain
-from langchain_classic.chains.retrieval_qa.base import RetrievalQA
+from langchain_classic.chains import LLMChain # pyrefly: ignore [missing-import]
+from langchain_classic.chains.retrieval_qa.base import RetrievalQA # pyrefly: ignore [missing-import]
 
-from langchain_core.prompts import PromptTemplate
-from langchain_core.messages import HumanMessage, AIMessage
-from langchain_core.documents import Document   # Added for safety
+from langchain_core.prompts import PromptTemplate # pyrefly: ignore [missing-import]
+from langchain_core.messages import HumanMessage, AIMessage # pyrefly: ignore [missing-import]
+from langchain_core.documents import Document # pyrefly: ignore [missing-import]
 
-from langchain_community.embeddings import HuggingFaceInstructEmbeddings
-from langchain_community.llms import CTransformers
-from langchain_community.vectorstores import Chroma
-from langchain_community.llms import Ollama
+from langchain_community.embeddings import HuggingFaceInstructEmbeddings # pyrefly: ignore [missing-import]
+from langchain_community.llms import CTransformers # pyrefly: ignore [missing-import]
+from langchain_community.vectorstores import Chroma # pyrefly: ignore [missing-import]
+from langchain_community.llms import Ollama # pyrefly: ignore [missing-import]
 
-from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter # pyrefly: ignore [missing-import]
 
 from operator import itemgetter
 from utils import load_config
 import os
-import chromadb
+import chromadb # pyrefly: ignore [missing-import]
 
 config = load_config()
 
