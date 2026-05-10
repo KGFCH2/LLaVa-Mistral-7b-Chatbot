@@ -7,6 +7,8 @@ from langchain_classic.chains.retrieval_qa.base import RetrievalQA # pyrefly: ig
 from langchain_core.prompts import PromptTemplate # pyrefly: ignore [missing-import]
 from langchain_core.messages import HumanMessage, AIMessage # pyrefly: ignore [missing-import]
 from langchain_core.documents import Document # pyrefly: ignore [missing-import]
+from langchain_core.language_models.llms import LLM # pyrefly: ignore [missing-import]
+from typing import Any, List, Optional
 
 from langchain_community.embeddings import HuggingFaceInstructEmbeddings # pyrefly: ignore [missing-import]
 from langchain_community.llms import CTransformers # pyrefly: ignore [missing-import]
@@ -28,13 +30,19 @@ def load_ollama_model():
     return llm
 
 
-class MockLLM:
-    def __init__(self):
-        pass
-    def invoke(self, input, **kwargs):
-        return {"text": " [MOCK MODE] I am running in mock mode because the local GGUF models were not found. I can still help you test the UI and logic!"}
-    def bind(self, **kwargs):
-        return self
+class MockLLM(LLM):
+    def _call(self, prompt: str, stop: Optional[List[str]] = None, **kwargs: Any) -> str:
+        return " [MOCK MODE] I am running in mock mode because the local GGUF models were not found. I can still help you test the UI and logic!"
+
+    @property
+    def _llm_type(self) -> str:
+        return "mock"
+
+    def invoke(self, input: Any, **kwargs: Any) -> Any:
+        # Compatibility with Runnable interface
+        if isinstance(input, dict) and "human_input" in input:
+            return {"text": self._call(input["human_input"])}
+        return self._call(str(input))
 
 def create_llm(model_path=config["ctransformers"]["model_path"]["large"],
                model_type=config["ctransformers"]["model_type"], model_config=config["ctransformers"]["model_config"]):

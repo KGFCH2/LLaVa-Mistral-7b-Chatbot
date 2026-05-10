@@ -125,5 +125,14 @@ def delete_chat_history(conn: sqlite3.Connection, chat_history_id: str) -> None:
     print(f"All entries with chat_history_id '{chat_history_id}' have been deleted.")
 
 
+def rename_chat_session(conn: sqlite3.Connection, old_id: str, new_id: str) -> None:
+    conn.execute(
+        "UPDATE messages SET chat_history_id = ? WHERE chat_history_id = ?",
+        (new_id, old_id),
+    )
+    conn.commit()
+    print(f"Chat session renamed from '{old_id}' to '{new_id}'.")
+
+
 if __name__ == "__main__":
     init_db()

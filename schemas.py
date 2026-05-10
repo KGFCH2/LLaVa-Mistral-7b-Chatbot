@@ -1,5 +1,6 @@
 from typing import List, Optional
-from pydantic import BaseModel, Field
+# pyrefly: ignore [missing-import]
+from pydantic import BaseModel, Field 
 
 
 class ChatRequest(BaseModel):
