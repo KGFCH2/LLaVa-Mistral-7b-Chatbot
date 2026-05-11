@@ -1,6 +1,6 @@
-import streamlit as st
-from llm_chains import load_normal_chain, load_pdf_chat_chain
-from streamlit_mic_recorder import mic_recorder
+import streamlit as st # pyrefly: ignore [missing-import]
+from llm_chains import load_normal_chain, load_pdf_chat_chain # pyrefly: ignore [missing-import]
+from streamlit_mic_recorder import mic_recorder # pyrefly: ignore [missing-import]
 from utils import get_timestamp, load_config
 from image_handler import handle_image
 from audio_handler import transcribe_audio
@@ -15,11 +15,11 @@ from database_operations import (
     load_messages,
     get_all_chat_history_ids,
     delete_chat_history,
+    rename_chat_session,
 )
 import sqlite3
 
 config = load_config()
-
 
 @st.cache_resource
 def load_chain():
@@ -44,6 +44,15 @@ def get_session_key():
 def delete_chat_session_history():
     delete_chat_history(st.session_state.db_conn, st.session_state.session_key)
     st.session_state.session_index_tracker = "new_session"
+
+
+def rename_current_session():
+    if st.session_state.new_session_name and st.session_state.session_key != "new_session":
+        old_id = st.session_state.session_key
+        new_id = st.session_state.new_session_name
+        rename_chat_session(st.session_state.db_conn, old_id, new_id)
+        st.session_state.session_index_tracker = new_id
+        st.session_state.session_key = new_id
 
 
 def clear_cache():
@@ -96,6 +105,12 @@ def main():
     delete_chat_col, clear_cache_col = st.sidebar.columns(2)
     delete_chat_col.button("Delete Chat Session", on_click=delete_chat_session_history)
     clear_cache_col.button("Clear Cache", on_click=clear_cache)
+
+    if st.session_state.session_key != "new_session":
+        st.sidebar.divider()
+        st.sidebar.subheader("Rename Session")
+        st.sidebar.text_input("New Session Name", key="new_session_name", placeholder="Enter name...")
+        st.sidebar.button("Update Name", on_click=rename_current_session)
 
     chat_container = st.container()
     user_input = st.chat_input("Type your message here", key="user_input")
