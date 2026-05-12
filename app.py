@@ -43,7 +43,7 @@ def get_session_key():
 
 
 def delete_chat_session_history():
-    delete_chat_history(st.session_state.session_key)
+    delete_chat_history(st.session_state.db_conn, st.session_state.session_key)
     st.session_state.session_index_tracker = "new_session"
 
 
@@ -55,7 +55,7 @@ def rename_current_session():
     if st.session_state.new_session_name and st.session_state.session_key != "new_session":
         old_id = st.session_state.session_key
         new_id = st.session_state.new_session_name
-        rename_chat_session(old_id, new_id)
+        rename_chat_session(st.session_state.db_conn, old_id, new_id)
         st.session_state.session_index_tracker = new_id
         st.session_state.session_key = new_id
 
@@ -72,7 +72,8 @@ def main():
         st.session_state.db_conn = sqlite3.connect(config["chat_sessions_database_path"], check_same_thread=False)
         st.session_state.audio_uploader_key = 0
         st.session_state.pdf_uploader_key = 1
-    if st.session_state.session_key == "new_session" and st.session_state.new_session_key != None:
+    
+    if st.session_state.session_key == "new_session" and st.session_state.new_session_key is not None:
         st.session_state.session_index_tracker = st.session_state.new_session_key
         st.session_state.new_session_key = None
 
@@ -89,7 +90,8 @@ def main():
             st.caption("Mistral 7B & LLaVa are ready to process your requests.")
     # ------------------------------
 
-    chat_sessions = ["new_session"] + get_all_chat_history_ids()
+    conn = st.session_state.db_conn
+    chat_sessions = ["new_session"] + get_all_chat_history_ids(conn)
 
     index = chat_sessions.index(st.session_state.session_index_tracker)
     st.sidebar.selectbox("📂 Chat History", chat_sessions, key="session_key", index=index, help="Select a previous conversation or start a new one.")
@@ -134,8 +136,6 @@ def main():
     chat_container = st.container()
     user_input = st.chat_input("Type your message here...", key="user_input")
 
-    conn = st.session_state.db_conn
-
     if uploaded_pdf:
         with st.spinner("Processing pdf..."):
             add_documents_to_db(uploaded_pdf)
@@ -146,8 +146,8 @@ def main():
         print(transcribed_audio)
         llm_chain = load_chain()
         llm_answer = llm_chain.run(user_input="Summarize this text: " + transcribed_audio, chat_history=[])
-        save_audio_message(get_session_key(), "human", uploaded_audio.getvalue())
-        save_text_message(get_session_key(), "ai", llm_answer)
+        save_audio_message(conn, get_session_key(), "human", uploaded_audio.getvalue())
+        save_text_message(conn, get_session_key(), "ai", llm_answer)
         st.session_state.audio_uploader_key += 2
 
     if voice_recording:
@@ -155,32 +155,32 @@ def main():
         print(transcribed_audio)
         llm_chain = load_chain()
         llm_answer = llm_chain.run(user_input=transcribed_audio,
-                                   chat_history=load_last_k_text_messages(get_session_key(),
+                                   chat_history=load_last_k_text_messages(conn, get_session_key(),
                                                                           config["chat_config"]["chat_memory_length"]))
-        save_audio_message(get_session_key(), "human", voice_recording["bytes"])
-        save_text_message(get_session_key(), "ai", llm_answer)
+        save_audio_message(conn, get_session_key(), "human", voice_recording["bytes"])
+        save_text_message(conn, get_session_key(), "ai", llm_answer)
 
     if user_input:
         if uploaded_image:
             with st.spinner("Processing image..."):
                 llm_answer = handle_image(uploaded_image.getvalue(), user_input)
-                save_text_message(get_session_key(), "human", user_input)
-                save_image_message(get_session_key(), "human", uploaded_image.getvalue())
-                save_text_message(get_session_key(), "ai", llm_answer)
+                save_text_message(conn, get_session_key(), "human", user_input)
+                save_image_message(conn, get_session_key(), "human", uploaded_image.getvalue())
+                save_text_message(conn, get_session_key(), "ai", llm_answer)
                 user_input = None
 
         if user_input:
             llm_chain = load_chain()
             llm_answer = llm_chain.run(user_input=user_input,
-                                       chat_history=load_last_k_text_messages(get_session_key(), config["chat_config"][
+                                       chat_history=load_last_k_text_messages(conn, get_session_key(), config["chat_config"][
                                            "chat_memory_length"]))
-            save_text_message(get_session_key(), "human", user_input)
-            save_text_message(get_session_key(), "ai", llm_answer)
+            save_text_message(conn, get_session_key(), "human", user_input)
+            save_text_message(conn, get_session_key(), "ai", llm_answer)
             user_input = None
 
-    if (st.session_state.session_key != "new_session") != (st.session_state.new_session_key != None):
+    if (st.session_state.session_key != "new_session") != (st.session_state.new_session_key is not None):
         with chat_container:
-            chat_history_messages = load_messages(get_session_key())
+            chat_history_messages = load_messages(conn, get_session_key())
 
             for message in chat_history_messages:
                 with st.chat_message(name=message["sender_type"]):
@@ -191,7 +191,7 @@ def main():
                     if message["message_type"] == "audio":
                         st.audio(message["content"], format="audio/wav")
 
-        if (st.session_state.session_key == "new_session") and (st.session_state.new_session_key != None):
+        if (st.session_state.session_key == "new_session") and (st.session_state.new_session_key is not None):
             st.rerun()
 
 

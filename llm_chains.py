@@ -1,27 +1,26 @@
 from prompt_templates import memory_prompt_template, pdf_chat_prompt
 
 # Fixed imports for LangChain 2026
-from langchain_classic.chains import LLMChain
-from langchain_classic.chains.retrieval_qa.base import RetrievalQA
+from langchain_classic.chains import LLMChain # pyrefly: ignore [missing-import]
+from langchain_classic.chains.retrieval_qa.base import RetrievalQA # pyrefly: ignore [missing-import]
 
-from langchain_core.prompts import PromptTemplate
-from langchain_core.messages import HumanMessage, AIMessage
-from langchain_core.documents import Document   # Added for safety
+from langchain_core.prompts import PromptTemplate # pyrefly: ignore [missing-import]
+from langchain_core.messages import HumanMessage, AIMessage # pyrefly: ignore [missing-import]
+from langchain_core.documents import Document # pyrefly: ignore [missing-import]
+from langchain_core.language_models.llms import LLM # pyrefly: ignore [missing-import]
+from typing import Any, List, Optional
 
-from langchain_community.embeddings import HuggingFaceInstructEmbeddings
-from langchain_community.llms import CTransformers
-from langchain_community.vectorstores import Chroma
-from langchain_community.llms import Ollama
+from langchain_community.embeddings import HuggingFaceInstructEmbeddings # pyrefly: ignore [missing-import]
+from langchain_community.llms import CTransformers # pyrefly: ignore [missing-import]
+from langchain_community.vectorstores import Chroma # pyrefly: ignore [missing-import]
+from langchain_community.llms import Ollama # pyrefly: ignore [missing-import]
 
-from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter # pyrefly: ignore [missing-import]
 
 from operator import itemgetter
 from utils import load_config
-import chromadb
-
-from typing import Any, List, Optional
-from langchain_core.language_models.llms import LLM
 import os
+import chromadb # pyrefly: ignore [missing-import]
 
 config = load_config()
 
@@ -44,7 +43,6 @@ class MockLLM(LLM):
         if isinstance(input, dict) and "human_input" in input:
             return {"text": self._call(input["human_input"])}
         return self._call(str(input))
-
 
 def create_llm(model_path=config["ctransformers"]["model_path"]["large"],
                model_type=config["ctransformers"]["model_type"], model_config=config["ctransformers"]["model_config"]):
