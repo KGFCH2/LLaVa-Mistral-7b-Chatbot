@@ -19,6 +19,10 @@ from operator import itemgetter
 from utils import load_config
 import chromadb
 
+from typing import Any, List, Optional
+from langchain_core.language_models.llms import LLM
+import os
+
 config = load_config()
 
 
@@ -27,8 +31,28 @@ def load_ollama_model():
     return llm
 
 
+class MockLLM(LLM):
+    def _call(self, prompt: str, stop: Optional[List[str]] = None, **kwargs: Any) -> str:
+        return " [MOCK MODE] I am running in mock mode because the local GGUF models were not found. I can still help you test the UI and logic!"
+
+    @property
+    def _llm_type(self) -> str:
+        return "mock"
+
+    def invoke(self, input: Any, **kwargs: Any) -> Any:
+        # Compatibility with Runnable interface
+        if isinstance(input, dict) and "human_input" in input:
+            return {"text": self._call(input["human_input"])}
+        return self._call(str(input))
+
+
 def create_llm(model_path=config["ctransformers"]["model_path"]["large"],
                model_type=config["ctransformers"]["model_type"], model_config=config["ctransformers"]["model_config"]):
+    
+    if not os.path.exists(model_path):
+        print(f"Model path {model_path} not found. Switching to Mock Mode.")
+        return MockLLM()
+        
     llm = CTransformers(model=model_path, model_type=model_type, config=model_config)
     return llm
 

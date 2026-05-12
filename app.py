@@ -1,14 +1,24 @@
-import streamlit as st
-from llm_chains import load_normal_chain, load_pdf_chat_chain
-from streamlit_mic_recorder import mic_recorder
+import streamlit as st # pyrefly: ignore [missing-import]
+import os
+import sqlite3
+from llm_chains import load_normal_chain, load_pdf_chat_chain # pyrefly: ignore [missing-import]
+from streamlit_mic_recorder import mic_recorder # pyrefly: ignore [missing-import]
 from utils import get_timestamp, load_config
 from image_handler import handle_image
 from audio_handler import transcribe_audio
 from pdf_handler import add_documents_to_db
 from html_templates import css
-from database_operations import init_db, load_last_k_text_messages, save_text_message, save_image_message, save_audio_message, \
-    load_messages, get_all_chat_history_ids, delete_chat_history
-import sqlite3
+from database_operations import (
+    init_db,
+    load_last_k_text_messages,
+    save_text_message,
+    save_image_message,
+    save_audio_message,
+    load_messages,
+    get_all_chat_history_ids,
+    delete_chat_history,
+    rename_chat_session,
+)
 
 config = load_config()
 
@@ -41,6 +51,15 @@ def clear_cache():
     st.cache_resource.clear()
 
 
+def rename_current_session():
+    if st.session_state.new_session_name and st.session_state.session_key != "new_session":
+        old_id = st.session_state.session_key
+        new_id = st.session_state.new_session_name
+        rename_chat_session(old_id, new_id)
+        st.session_state.session_index_tracker = new_id
+        st.session_state.session_key = new_id
+
+
 def main():
     init_db()
     st.title("Converso")
@@ -57,28 +76,65 @@ def main():
         st.session_state.session_index_tracker = st.session_state.new_session_key
         st.session_state.new_session_key = None
 
-    st.sidebar.title("Chat Sessions")
+    st.sidebar.title("🤖 Converso")
+    
+    # --- Enhanced System Status ---
+    model_path = config["ctransformers"]["model_path"]["large"]
+    with st.sidebar:
+        if not os.path.exists(model_path):
+            st.error("⚠️ **System Status: Mock Mode**")
+            st.caption("Local GGUF models not found. Please check your `models/` directory.")
+        else:
+            st.success("✅ **System Status: Local LLM Active**")
+            st.caption("Mistral 7B & LLaVa are ready to process your requests.")
+    # ------------------------------
+
     chat_sessions = ["new_session"] + get_all_chat_history_ids()
 
     index = chat_sessions.index(st.session_state.session_index_tracker)
-    st.sidebar.selectbox("Select a chat session", chat_sessions, key="session_key", index=index)
-    pdf_toggle_col, voice_rec_col = st.sidebar.columns(2)
-    pdf_toggle_col.toggle("PDF Chat", key="pdf_chat", value=False, on_change=clear_cache)
-    with voice_rec_col:
-        voice_recording = mic_recorder(start_prompt="Record Audio", stop_prompt="Stop recording", just_once=True)
-    delete_chat_col, clear_cache_col = st.sidebar.columns(2)
-    delete_chat_col.button("Delete Chat Session", on_click=delete_chat_session_history)
-    clear_cache_col.button("Clear Cache", on_click=clear_cache)
+    st.sidebar.selectbox("📂 Chat History", chat_sessions, key="session_key", index=index, help="Select a previous conversation or start a new one.")
+
+    with st.sidebar.expander("🛠️ Session Settings", expanded=False):
+        delete_chat_col, clear_cache_col = st.columns(2)
+        delete_chat_col.button("🗑️ Delete", on_click=delete_chat_session_history, help="Permanently delete this session.")
+        clear_cache_col.button("🔄 Reset", on_click=clear_cache, help="Clear model cache and reinitialize.")
+
+        if st.session_state.session_key != "new_session":
+            st.divider()
+            st.subheader("Rename Session")
+            st.text_input("New Name", key="new_session_name", placeholder="Enter name...")
+            st.button("Update Name", on_click=rename_current_session)
+
+    st.sidebar.divider()
+    st.sidebar.subheader("🧰 Multimodal Tools")
+    
+    tool_tabs = st.sidebar.tabs(["📄 PDF", "🖼️ Image", "🎙️ Audio"])
+
+    with tool_tabs[0]:
+        st.toggle("Enable PDF Context", key="pdf_chat", value=False, on_change=clear_cache, help="When enabled, the bot will search through uploaded PDFs.")
+        uploaded_pdf = st.file_uploader(
+            "Upload documents", accept_multiple_files=True,
+            key=st.session_state.pdf_uploader_key, type=["pdf"],
+            on_change=toggle_pdf_chat,
+        )
+
+    with tool_tabs[1]:
+        uploaded_image = st.file_uploader("Upload an image", type=["jpg", "jpeg", "png"], help="Upload an image to ask questions about it.")
+
+    with tool_tabs[2]:
+        voice_recording = mic_recorder(
+            start_prompt="Record Voice", stop_prompt="Stop Recording", just_once=True
+        )
+        st.divider()
+        uploaded_audio = st.file_uploader(
+            "Upload audio file", type=["wav", "mp3", "ogg"],
+            key=st.session_state.audio_uploader_key,
+        )
 
     chat_container = st.container()
-    user_input = st.chat_input("Type your message here", key="user_input")
+    user_input = st.chat_input("Type your message here...", key="user_input")
 
-    uploaded_audio = st.sidebar.file_uploader("Upload an audio file", type=["wav", "mp3", "ogg"],
-                                              key=st.session_state.audio_uploader_key)
-    uploaded_image = st.sidebar.file_uploader("Upload an image file", type=["jpg", "jpeg", "png"])
-    uploaded_pdf = st.sidebar.file_uploader("Upload a pdf file", accept_multiple_files=True,
-                                            key=st.session_state.pdf_uploader_key, type=["pdf"],
-                                            on_change=toggle_pdf_chat)
+    conn = st.session_state.db_conn
 
     if uploaded_pdf:
         with st.spinner("Processing pdf..."):

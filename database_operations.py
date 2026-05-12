@@ -110,6 +110,16 @@ def delete_chat_history(chat_history_id):
     print(f"All entries with chat_history_id {chat_history_id} have been deleted.")
 
 
+def rename_chat_session(old_id, new_id):
+    conn, cursor = get_db_connection_and_cursor()
+
+    query = "UPDATE messages SET chat_history_id = ? WHERE chat_history_id = ?"
+    cursor.execute(query, (new_id, old_id))
+    conn.commit()
+
+    print(f"Session {old_id} has been renamed to {new_id}.")
+
+
 def init_db():
     db_path = config["chat_sessions_database_path"]
 
