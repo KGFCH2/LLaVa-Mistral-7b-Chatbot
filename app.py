@@ -67,18 +67,52 @@ def main():
     with voice_rec_col:
         voice_recording = mic_recorder(start_prompt="Record Audio", stop_prompt="Stop recording", just_once=True)
     delete_chat_col, clear_cache_col = st.sidebar.columns(2)
-    delete_chat_col.button("Delete Chat Session", on_click=delete_chat_session_history)
-    clear_cache_col.button("Clear Cache", on_click=clear_cache)
+    if st.session_state.get("confirm_delete", False):
+        st.sidebar.warning("Are you sure?")
+        yes_col, no_col = st.sidebar.columns(2)
+        if yes_col.button("Yes", use_container_width=True):
+            delete_chat_session_history()
+            st.session_state.confirm_delete = False
+            st.rerun()
+        if no_col.button("No", use_container_width=True):
+            st.session_state.confirm_delete = False
+            st.rerun()
+    else:
+        if delete_chat_col.button("Delete Chat Session", use_container_width=True):
+            st.session_state.confirm_delete = True
+            st.rerun()
+    
+    clear_cache_col.button("Clear Cache", on_click=clear_cache, use_container_width=True)
+
+    with st.sidebar.expander("📁 Media Uploads", expanded=False):
+        uploaded_audio = st.file_uploader("Upload an audio file", type=["wav", "mp3", "ogg"],
+                                                key=st.session_state.audio_uploader_key)
+        uploaded_image = st.file_uploader("Upload an image file", type=["jpg", "jpeg", "png"])
+        uploaded_pdf = st.file_uploader("Upload a pdf file", accept_multiple_files=True,
+                                                key=st.session_state.pdf_uploader_key, type=["pdf"],
+                                                on_change=toggle_pdf_chat)
+
+    st.sidebar.markdown("<div class='sidebar-footer'></div>", unsafe_allow_html=True)
+    st.sidebar.markdown("### 🌐 Resource Portal")
+    
+    with st.sidebar.expander("🛡️ Privacy"):
+        st.markdown("#### 🛡️ Privacy Policy")
+        st.write("Converso runs entirely locally. Your messages, images, and audio stay on your machine in a local SQLite database and are never sent to external servers.")
+    
+    with st.sidebar.expander("⚖️ Terms"):
+        st.markdown("#### ⚖️ Terms of Service")
+        st.write("Provided 'as is' under MIT. Users are responsible for the models and content generated. For educational and research use.")
+            
+    with st.sidebar.expander("📚 Docs"):
+        st.markdown("#### 📚 Documentation")
+        st.write("Multimodal AI using Mistral 7B & LLaVA 1.5. Configurable via `config.yaml`. Supports PDF RAG via ChromaDB.")
+
+    with st.sidebar.expander("❓ FAQ"):
+        st.markdown("#### ❓ Frequently Asked")
+        st.write("**PDF Chat?** Upload and toggle 'PDF Chat'.\n**GPU?** Adjust `gpu_layers` in config.\n**Free?** Yes, open-source.")
 
     chat_container = st.container()
     user_input = st.chat_input("Type your message here", key="user_input")
-
-    uploaded_audio = st.sidebar.file_uploader("Upload an audio file", type=["wav", "mp3", "ogg"],
-                                              key=st.session_state.audio_uploader_key)
-    uploaded_image = st.sidebar.file_uploader("Upload an image file", type=["jpg", "jpeg", "png"])
-    uploaded_pdf = st.sidebar.file_uploader("Upload a pdf file", accept_multiple_files=True,
-                                            key=st.session_state.pdf_uploader_key, type=["pdf"],
-                                            on_change=toggle_pdf_chat)
 
     if uploaded_pdf:
         with st.spinner("Processing pdf..."):
@@ -87,7 +121,6 @@ def main():
 
     if uploaded_audio:
         transcribed_audio = transcribe_audio(uploaded_audio.getvalue())
-        print(transcribed_audio)
         llm_chain = load_chain()
         llm_answer = llm_chain.run(user_input="Summarize this text: " + transcribed_audio, chat_history=[])
         save_audio_message(get_session_key(), "human", uploaded_audio.getvalue())
@@ -96,7 +129,6 @@ def main():
 
     if voice_recording:
         transcribed_audio = transcribe_audio(voice_recording["bytes"])
-        print(transcribed_audio)
         llm_chain = load_chain()
         llm_answer = llm_chain.run(user_input=transcribed_audio,
                                    chat_history=load_last_k_text_messages(get_session_key(),
@@ -137,31 +169,6 @@ def main():
 
         if (st.session_state.session_key == "new_session") and (st.session_state.new_session_key != None):
             st.rerun()
-
-    st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
-    footer_col1, footer_col2, footer_col3, footer_col4 = st.columns(4)
-    
-    with footer_col1:
-        with st.expander("🛡️ Privacy"):
-            st.markdown("### 🛡️ Privacy Policy")
-            st.write("Converso is built with privacy as a core principle. All your data—including chat history, transcribed audio, and uploaded images—is stored locally in an SQLite database on your own machine. No data is ever sent to external servers or third-party AI providers.")
-    
-    with footer_col2:
-        with st.expander("⚖️ Terms"):
-            st.markdown("### ⚖️ Terms of Service")
-            st.write("Converso is an open-source tool provided 'as is' under the MIT license. Users are responsible for the models they download and the content they generate. This software is intended for personal and educational research only.")
-            
-    with footer_col3:
-        with st.expander("📚 Docs"):
-            st.markdown("### 📚 Documentation")
-            st.write("Converso leverages Mistral 7B (for text) and LLaVA 1.5 (for vision) to provide a seamless multimodal experience. Audio transcription is powered by OpenAI's Whisper model, and PDF querying uses RAG with ChromaDB as the vector store.")
-
-    with footer_col4:
-        with st.expander("❓ FAQ"):
-            st.markdown("### ❓ Frequently Asked")
-            st.write("**Q: How do I change models?**  \nA: Simply update the paths in the `config.yaml` file to point to your GGUF files.")
-            st.write("**Q: Is it completely free?**  \nA: Yes, Converso is open-source. You only need to provide the models.")
-            st.write("**Q: Hardware requirements?**  \nA: Recommended: 16GB+ RAM. GPU offloading is supported via `gpu_layers` in config.")
 
 
 if __name__ == "__main__":
