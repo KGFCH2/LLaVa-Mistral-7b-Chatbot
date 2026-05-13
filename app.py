@@ -67,18 +67,33 @@ def main():
     with voice_rec_col:
         voice_recording = mic_recorder(start_prompt="Record Audio", stop_prompt="Stop recording", just_once=True)
     delete_chat_col, clear_cache_col = st.sidebar.columns(2)
-    delete_chat_col.button("Delete Chat Session", on_click=delete_chat_session_history)
-    clear_cache_col.button("Clear Cache", on_click=clear_cache)
+    if st.session_state.get("confirm_delete", False):
+        st.sidebar.warning("Are you sure?")
+        yes_col, no_col = st.sidebar.columns(2)
+        if yes_col.button("Yes", use_container_width=True):
+            delete_chat_session_history()
+            st.session_state.confirm_delete = False
+            st.rerun()
+        if no_col.button("No", use_container_width=True):
+            st.session_state.confirm_delete = False
+            st.rerun()
+    else:
+        if delete_chat_col.button("Delete Chat Session", use_container_width=True):
+            st.session_state.confirm_delete = True
+            st.rerun()
+    
+    clear_cache_col.button("Clear Cache", on_click=clear_cache, use_container_width=True)
 
     chat_container = st.container()
     user_input = st.chat_input("Type your message here", key="user_input")
 
-    uploaded_audio = st.sidebar.file_uploader("Upload an audio file", type=["wav", "mp3", "ogg"],
-                                              key=st.session_state.audio_uploader_key)
-    uploaded_image = st.sidebar.file_uploader("Upload an image file", type=["jpg", "jpeg", "png"])
-    uploaded_pdf = st.sidebar.file_uploader("Upload a pdf file", accept_multiple_files=True,
-                                            key=st.session_state.pdf_uploader_key, type=["pdf"],
-                                            on_change=toggle_pdf_chat)
+    with st.sidebar.expander("📁 Media Uploads", expanded=False):
+        uploaded_audio = st.file_uploader("Upload an audio file", type=["wav", "mp3", "ogg"],
+                                                key=st.session_state.audio_uploader_key)
+        uploaded_image = st.file_uploader("Upload an image file", type=["jpg", "jpeg", "png"])
+        uploaded_pdf = st.file_uploader("Upload a pdf file", accept_multiple_files=True,
+                                                key=st.session_state.pdf_uploader_key, type=["pdf"],
+                                                on_change=toggle_pdf_chat)
 
     if uploaded_pdf:
         with st.spinner("Processing pdf..."):
@@ -87,7 +102,6 @@ def main():
 
     if uploaded_audio:
         transcribed_audio = transcribe_audio(uploaded_audio.getvalue())
-        print(transcribed_audio)
         llm_chain = load_chain()
         llm_answer = llm_chain.run(user_input="Summarize this text: " + transcribed_audio, chat_history=[])
         save_audio_message(get_session_key(), "human", uploaded_audio.getvalue())
@@ -96,7 +110,6 @@ def main():
 
     if voice_recording:
         transcribed_audio = transcribe_audio(voice_recording["bytes"])
-        print(transcribed_audio)
         llm_chain = load_chain()
         llm_answer = llm_chain.run(user_input=transcribed_audio,
                                    chat_history=load_last_k_text_messages(get_session_key(),
