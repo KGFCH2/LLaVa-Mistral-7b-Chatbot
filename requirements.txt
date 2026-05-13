@@ -12,3 +12,6 @@ streamlit
 starlette>=1.0.0
 streamlit-mic-recorder
 transformers
+fastapi>=0.111.0
+uvicorn[standard]>=0.29
+python-multipart>=0.0.9
