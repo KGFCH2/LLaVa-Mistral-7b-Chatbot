@@ -9,5 +9,8 @@ pypdfium2
 pyyaml
 sentence-transformers
 streamlit
+starlette>=1.0.0
 streamlit-mic-recorder
 transformers
+torchvision
+torch
