@@ -138,6 +138,31 @@ def main():
         if (st.session_state.session_key == "new_session") and (st.session_state.new_session_key != None):
             st.rerun()
 
+    st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
+    footer_col1, footer_col2, footer_col3, footer_col4 = st.columns(4)
+    
+    with footer_col1:
+        with st.expander("🛡️ Privacy"):
+            st.markdown("### 🛡️ Privacy Policy")
+            st.write("Converso is built with privacy as a core principle. All your data—including chat history, transcribed audio, and uploaded images—is stored locally in an SQLite database on your own machine. No data is ever sent to external servers or third-party AI providers.")
+    
+    with footer_col2:
+        with st.expander("⚖️ Terms"):
+            st.markdown("### ⚖️ Terms of Service")
+            st.write("Converso is an open-source tool provided 'as is' under the MIT license. Users are responsible for the models they download and the content they generate. This software is intended for personal and educational research only.")
+            
+    with footer_col3:
+        with st.expander("📚 Docs"):
+            st.markdown("### 📚 Documentation")
+            st.write("Converso leverages Mistral 7B (for text) and LLaVA 1.5 (for vision) to provide a seamless multimodal experience. Audio transcription is powered by OpenAI's Whisper model, and PDF querying uses RAG with ChromaDB as the vector store.")
+
+    with footer_col4:
+        with st.expander("❓ FAQ"):
+            st.markdown("### ❓ Frequently Asked")
+            st.write("**Q: How do I change models?**  \nA: Simply update the paths in the `config.yaml` file to point to your GGUF files.")
+            st.write("**Q: Is it completely free?**  \nA: Yes, Converso is open-source. You only need to provide the models.")
+            st.write("**Q: Hardware requirements?**  \nA: Recommended: 16GB+ RAM. GPU offloading is supported via `gpu_layers` in config.")
+
 
 if __name__ == "__main__":
     main()
