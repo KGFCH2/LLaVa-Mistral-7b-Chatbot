@@ -1,7 +1,11 @@
 import json
 from datetime import datetime
 import yaml
+<<<<<<< HEAD
 from langchain_core.messages import HumanMessage, AIMessage
+=======
+from langchain_core.messages import HumanMessage, AIMessage # pyrefly: ignore [missing-import]
+>>>>>>> cf049224449266d41007d6fac7ce8805e96a22cb
 
 
 def load_config():
@@ -24,4 +28,8 @@ def load_chat_history_json(file_path):
 
 
 def get_timestamp():
+<<<<<<< HEAD
     return datetime.now().strftime("%d-%m-%Y %H:%M:%S")
+=======
+    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+>>>>>>> cf049224449266d41007d6fac7ce8805e96a22cb

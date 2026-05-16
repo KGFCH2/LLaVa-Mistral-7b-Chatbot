@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 chromadb
 ctransformers
 InstructorEmbedding
@@ -11,3 +12,21 @@ sentence-transformers
 streamlit
 streamlit-mic-recorder
 transformers
+=======
+chromadb
+ctransformers
+InstructorEmbedding
+langchain
+langchain-community
+llama-cpp-python
+librosa
+pypdfium2
+pyyaml
+sentence-transformers
+streamlit
+streamlit-mic-recorder
+transformers
+fastapi>=0.111.0
+uvicorn[standard]>=0.29
+python-multipart>=0.0.9
+>>>>>>> cf049224449266d41007d6fac7ce8805e96a22cb

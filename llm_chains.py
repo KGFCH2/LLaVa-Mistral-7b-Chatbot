@@ -1,6 +1,7 @@
 from prompt_templates import memory_prompt_template, pdf_chat_prompt
 
 # Fixed imports for LangChain 2026
+<<<<<<< HEAD
 from langchain_classic.chains import LLMChain
 from langchain_classic.chains.retrieval_qa.base import RetrievalQA
 
@@ -18,6 +19,28 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from operator import itemgetter
 from utils import load_config
 import chromadb
+=======
+from langchain_classic.chains import LLMChain # pyrefly: ignore [missing-import]
+from langchain_classic.chains.retrieval_qa.base import RetrievalQA # pyrefly: ignore [missing-import]
+
+from langchain_core.prompts import PromptTemplate # pyrefly: ignore [missing-import]
+from langchain_core.messages import HumanMessage, AIMessage # pyrefly: ignore [missing-import]
+from langchain_core.documents import Document # pyrefly: ignore [missing-import]
+from langchain_core.language_models.llms import LLM # pyrefly: ignore [missing-import]
+from typing import Any, List, Optional
+
+from langchain_community.embeddings import HuggingFaceInstructEmbeddings # pyrefly: ignore [missing-import]
+from langchain_community.llms import CTransformers # pyrefly: ignore [missing-import]
+from langchain_community.vectorstores import Chroma # pyrefly: ignore [missing-import]
+from langchain_community.llms import Ollama # pyrefly: ignore [missing-import]
+
+from langchain_text_splitters import RecursiveCharacterTextSplitter # pyrefly: ignore [missing-import]
+
+from operator import itemgetter
+from utils import load_config
+import os
+import chromadb # pyrefly: ignore [missing-import]
+>>>>>>> cf049224449266d41007d6fac7ce8805e96a22cb
 
 config = load_config()
 
@@ -27,8 +50,32 @@ def load_ollama_model():
     return llm
 
 
+<<<<<<< HEAD
 def create_llm(model_path=config["ctransformers"]["model_path"]["large"],
                model_type=config["ctransformers"]["model_type"], model_config=config["ctransformers"]["model_config"]):
+=======
+class MockLLM(LLM):
+    def _call(self, prompt: str, stop: Optional[List[str]] = None, **kwargs: Any) -> str:
+        return " [MOCK MODE] I am running in mock mode because the local GGUF models were not found. I can still help you test the UI and logic!"
+
+    @property
+    def _llm_type(self) -> str:
+        return "mock"
+
+    def invoke(self, input: Any, **kwargs: Any) -> Any:
+        # Compatibility with Runnable interface
+        if isinstance(input, dict) and "human_input" in input:
+            return {"text": self._call(input["human_input"])}
+        return self._call(str(input))
+
+def create_llm(model_path=config["ctransformers"]["model_path"]["large"],
+               model_type=config["ctransformers"]["model_type"], model_config=config["ctransformers"]["model_config"]):
+    
+    if not os.path.exists(model_path):
+        print(f"Model path {model_path} not found. Switching to Mock Mode.")
+        return MockLLM()
+        
+>>>>>>> cf049224449266d41007d6fac7ce8805e96a22cb
     llm = CTransformers(model=model_path, model_type=model_type, config=model_config)
     return llm
 
