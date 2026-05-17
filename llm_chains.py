@@ -1,25 +1,6 @@
 from prompt_templates import memory_prompt_template, pdf_chat_prompt
 
 # Fixed imports for LangChain 2026
-<<<<<<< HEAD
-from langchain_classic.chains import LLMChain
-from langchain_classic.chains.retrieval_qa.base import RetrievalQA
-
-from langchain_core.prompts import PromptTemplate
-from langchain_core.messages import HumanMessage, AIMessage
-from langchain_core.documents import Document   # Added for safety
-
-from langchain_community.embeddings import HuggingFaceInstructEmbeddings
-from langchain_community.llms import CTransformers
-from langchain_community.vectorstores import Chroma
-from langchain_community.llms import Ollama
-
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-
-from operator import itemgetter
-from utils import load_config
-import chromadb
-=======
 from langchain_classic.chains import LLMChain # pyrefly: ignore [missing-import]
 from langchain_classic.chains.retrieval_qa.base import RetrievalQA # pyrefly: ignore [missing-import]
 
@@ -40,7 +21,6 @@ from operator import itemgetter
 from utils import load_config
 import os
 import chromadb # pyrefly: ignore [missing-import]
->>>>>>> cf049224449266d41007d6fac7ce8805e96a22cb
 
 config = load_config()
 
@@ -50,10 +30,6 @@ def load_ollama_model():
     return llm
 
 
-<<<<<<< HEAD
-def create_llm(model_path=config["ctransformers"]["model_path"]["large"],
-               model_type=config["ctransformers"]["model_type"], model_config=config["ctransformers"]["model_config"]):
-=======
 class MockLLM(LLM):
     def _call(self, prompt: str, stop: Optional[List[str]] = None, **kwargs: Any) -> str:
         return " [MOCK MODE] I am running in mock mode because the local GGUF models were not found. I can still help you test the UI and logic!"
@@ -75,7 +51,6 @@ def create_llm(model_path=config["ctransformers"]["model_path"]["large"],
         print(f"Model path {model_path} not found. Switching to Mock Mode.")
         return MockLLM()
         
->>>>>>> cf049224449266d41007d6fac7ce8805e96a22cb
     llm = CTransformers(model=model_path, model_type=model_type, config=model_config)
     return llm
 
