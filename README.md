@@ -22,7 +22,8 @@ Chat with text, images, audio, and PDFs — all running on your machine.
 | 🖼️ **Image Understanding** | Upload images and ask questions — powered by LLaVA 1.5 + CLIP   |
 | 🎙️ **Voice Input**         | Record mic audio or upload audio files, transcribed via Whisper |
 | 📄 **PDF Chat**            | Upload PDFs and chat with their content using RAG + ChromaDB    |
-| 🗂️ **Session Management**  | Persistent SQLite-backed chat history with delete support       |
+| 🗂️ **Session Management**  | Persistent SQLite-backed chat history with **renaming** & delete |
+| 🎨 **Premium UI**          | Modern tabbed sidebar with glassmorphism & icons                |
 
 ---
 
@@ -32,6 +33,7 @@ Chat with text, images, audio, and PDFs — all running on your machine.
 LLaVa-Mistral-7b-Chatbot/
 ├── app.py                    # Streamlit UI & entry point
 ├── llm_chains.py             # LLM chain builders (normal + PDF RAG)
+├── INSTRUCTIONS.md           # Detailed architecture & file guide 📖
 ├── prompt_templates.py       # Mistral instruction-tuned prompt templates
 ├── image_handler.py          # LLaVA multimodal image processing
 ├── audio_handler.py          # Whisper audio transcription
