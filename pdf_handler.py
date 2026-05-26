@@ -11,10 +11,23 @@ def get_pdf_texts(pdfs_bytes_list):
     return [extract_text_from_pdf(pdf_bytes.getvalue()) for pdf_bytes in pdfs_bytes_list]
 
 
+import re
+
 def extract_text_from_pdf(pdf_bytes):
-    pdf_file = pypdfium2.PdfDocument(pdf_bytes)
-    return "\n".join(
-        pdf_file.get_page(page_number).get_textpage().get_text_range() for page_number in range(len(pdf_file)))
+    if not pdf_bytes:
+        return ""
+    try:
+        pdf_file = pypdfium2.PdfDocument(pdf_bytes)
+        text = "\n".join(
+            pdf_file.get_page(page_number).get_textpage().get_text_range() for page_number in range(len(pdf_file)))
+        
+        # Clean text: remove duplicate whitespaces and normalise newlines
+        text = re.sub(r'[ \t]+', ' ', text)
+        text = re.sub(r'\n+', '\n', text)
+        return text.strip()
+    except Exception as e:
+        print(f"Error extracting text from PDF: {e}")
+        return ""
 
 
 def get_text_chunks(text):
