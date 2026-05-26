@@ -141,6 +141,21 @@ pyyaml
 
 ---
 
+## 🔧 Troubleshooting & Tips
+
+### 1 · Model Download Sources
+You can download the GGUF models directly from Hugging Face:
+- **Mistral 7B Instruct**: [TheBloke/Mistral-7B-Instruct-v0.1-GGUF](https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.1-GGUF)
+- **LLaVA 1.5 + CLIP**: [mys/GGML/llava-v1.5-7b](https://huggingface.co/mys/GGML/llava-v1.5-7b)
+
+### 2 · Database Initialization Issues
+If your database fails to initialize or SQLite errors occur, ensure that the path defined in `config.yaml` exists, or delete `chat_sessions/chat_sessions.db` to let the app recreate it automatically.
+
+### 3 · Hardware Acceleration
+To run model inference on GPU, adjust the `gpu_layers` parameter in `config.yaml` to offload layers to your GPU (e.g., CUDA or Apple Metal). Make sure you have installed `llama-cpp-python` compiled with GPU support.
+
+---
+
 ## 🤝 Contributing
 
 1. Fork the repository
