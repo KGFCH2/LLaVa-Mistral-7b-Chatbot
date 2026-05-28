@@ -35,7 +35,7 @@ def get_session_key():
 
 
 def delete_chat_session_history():
-    delete_chat_history(st.session_state.session_key)
+    delete_chat_history(st.session_state.db_conn, st.session_state.session_key)
     st.session_state.session_index_tracker = "new_session"
 
 
@@ -60,7 +60,7 @@ def main():
         st.session_state.new_session_key = None
 
     st.sidebar.title("Chat Sessions")
-    chat_sessions = ["new_session"] + get_all_chat_history_ids()
+    chat_sessions = ["new_session"] + get_all_chat_history_ids(st.session_state.db_conn)
 
     index = chat_sessions.index(st.session_state.session_index_tracker)
     st.sidebar.selectbox("Select a chat session", chat_sessions, key="session_key", index=index)
@@ -92,8 +92,8 @@ def main():
         print(transcribed_audio)
         llm_chain = load_chain()
         llm_answer = llm_chain.run(user_input="Summarize this text: " + transcribed_audio, chat_history=[])
-        save_audio_message(get_session_key(), "human", uploaded_audio.getvalue())
-        save_text_message(get_session_key(), "ai", llm_answer)
+        save_audio_message(st.session_state.db_conn, get_session_key(), "human", uploaded_audio.getvalue())
+        save_text_message(st.session_state.db_conn, get_session_key(), "ai", llm_answer)
         st.session_state.audio_uploader_key += 2
 
     if voice_recording:
@@ -101,32 +101,32 @@ def main():
         print(transcribed_audio)
         llm_chain = load_chain()
         llm_answer = llm_chain.run(user_input=transcribed_audio,
-                                   chat_history=load_last_k_text_messages(get_session_key(),
+                                   chat_history=load_last_k_text_messages(st.session_state.db_conn, get_session_key(),
                                                                           config["chat_config"]["chat_memory_length"]))
-        save_audio_message(get_session_key(), "human", voice_recording["bytes"])
-        save_text_message(get_session_key(), "ai", llm_answer)
+        save_audio_message(st.session_state.db_conn, get_session_key(), "human", voice_recording["bytes"])
+        save_text_message(st.session_state.db_conn, get_session_key(), "ai", llm_answer)
 
     if user_input:
         if uploaded_image:
             with st.spinner("Processing image..."):
                 llm_answer = handle_image(uploaded_image.getvalue(), user_input)
-                save_text_message(get_session_key(), "human", user_input)
-                save_image_message(get_session_key(), "human", uploaded_image.getvalue())
-                save_text_message(get_session_key(), "ai", llm_answer)
+                save_text_message(st.session_state.db_conn, get_session_key(), "human", user_input)
+                save_image_message(st.session_state.db_conn, get_session_key(), "human", uploaded_image.getvalue())
+                save_text_message(st.session_state.db_conn, get_session_key(), "ai", llm_answer)
                 user_input = None
 
         if user_input:
             llm_chain = load_chain()
             llm_answer = llm_chain.run(user_input=user_input,
-                                       chat_history=load_last_k_text_messages(get_session_key(), config["chat_config"][
+                                       chat_history=load_last_k_text_messages(st.session_state.db_conn, get_session_key(), config["chat_config"][
                                            "chat_memory_length"]))
-            save_text_message(get_session_key(), "human", user_input)
-            save_text_message(get_session_key(), "ai", llm_answer)
+            save_text_message(st.session_state.db_conn, get_session_key(), "human", user_input)
+            save_text_message(st.session_state.db_conn, get_session_key(), "ai", llm_answer)
             user_input = None
 
     if (st.session_state.session_key != "new_session") != (st.session_state.new_session_key != None):
         with chat_container:
-            chat_history_messages = load_messages(get_session_key())
+            chat_history_messages = load_messages(st.session_state.db_conn, get_session_key())
 
             for message in chat_history_messages:
                 with st.chat_message(name=message["sender_type"]):
