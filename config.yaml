@@ -34,3 +34,8 @@ chromadb:
   collection_name: "pdfs"
 
 chat_sessions_database_path: "./chat_sessions/chat_sessions.db"
+
+system_config:
+  default_welcome_message: "Hello! I am Converso, your local AI assistant. How can I help you today?"
+  max_image_dimension: 800
+  audio_sample_rate: 16000

@@ -1,24 +1,35 @@
-# pyrefly: ignore [missing-import]
-import torch 
 from transformers import pipeline # pyrefly: ignore [missing-import]
 import librosa # pyrefly: ignore [missing-import]
+import io
+from utils import load_config
+config = load_config()
 
+def convert_bytes_to_array(audio_bytes):
+    try:
+        audio_bytes = io.BytesIO(audio_bytes)
+        audio, sample_rate = librosa.load(audio_bytes)
+        print(f"Loaded audio sample rate: {sample_rate}")
+        return audio
+    except Exception as e:
+        print(f"Error converting audio bytes to array: {e}")
+        raise ValueError(f"Invalid or corrupted audio file: {e}")
 
 def transcribe_audio(audio_bytes):
-    # Use the openai/whisper-tiny model for fast transcription
-    device = "cuda:0" if torch.cuda.is_available() else "cpu"
+    if not audio_bytes:
+        return "[Error: Empty audio input received]"
+        
+    device = "cpu"
+    try:
+        pipe = pipeline(
+            task="automatic-speech-recognition",
+            model=config["whisper_model"],
+            chunk_length_s=30,
+            device=device,
+        )
 
-    pipe = pipeline(
-        "automatic-speech-recognition",
-        model="openai/whisper-tiny",
-        chunk_length_s=30,
-        device=device,
-    )
-
-    # Load audio from bytes using librosa
-    audio, rate = librosa.load(audio_bytes, sr=16000)
-
-    # Perform the transcription
-    prediction = pipe(audio, batch_size=8)["text"]
-
-    return prediction
+        audio_array = convert_bytes_to_array(audio_bytes)
+        prediction = pipe(audio_array, batch_size=1)["text"]
+        return prediction
+    except Exception as e:
+        print(f"Error during audio transcription: {e}")
+        return f"[Transcription Error: {str(e)}]"

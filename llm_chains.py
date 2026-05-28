@@ -44,13 +44,25 @@ class MockLLM(LLM):
             return {"text": self._call(input["human_input"])}
         return self._call(str(input))
 
-def create_llm(model_path=config["ctransformers"]["model_path"]["large"],
-               model_type=config["ctransformers"]["model_type"], model_config=config["ctransformers"]["model_config"]):
+
+def create_llm(model_size="large", model_type=None, model_config=None):
+    # Dynamically load config to pick up runtime updates
+    current_config = load_config()
     
+    if model_type is None:
+        model_type = current_config["ctransformers"].get("model_type", "mistral")
+        
+    if model_config is None:
+        model_config = current_config["ctransformers"].get("model_config", {})
+        
+    model_path = current_config["ctransformers"]["model_path"].get(model_size)
+    if not model_path:
+        model_path = current_config["ctransformers"]["model_path"]["large"]
+
     if not os.path.exists(model_path):
         print(f"Model path {model_path} not found. Switching to Mock Mode.")
         return MockLLM()
-        
+
     llm = CTransformers(model=model_path, model_type=model_type, config=model_config)
     return llm
 
