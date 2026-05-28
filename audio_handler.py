@@ -1,5 +1,5 @@
-from transformers import pipeline
-import librosa
+from transformers import pipeline # pyrefly: ignore [missing-import]
+import librosa # pyrefly: ignore [missing-import]
 import io
 from utils import load_config
 config = load_config()
