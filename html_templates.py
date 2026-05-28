@@ -18,6 +18,16 @@ css = """
         margin-bottom: 10px;
     }
 
+    /* Message card hover effects and transition */
+    .stChatMessage {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        border-radius: 15px;
+    }
+    .stChatMessage:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
     /* Sidebar Width Customization */
     section[data-testid="stSidebar"] {
         width: 380px !important;
@@ -36,6 +46,22 @@ css = """
     .divider-line {
         margin: 1.5rem 0;
         border-bottom: 1px solid #4a5568;
+    }
+
+    /* Modern Webkit Scrollbar Styling */
+    ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+        background: #4a5568;
+        border-radius: 10px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+        background: #718096;
     }
 </style>
 """
