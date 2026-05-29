@@ -1,5 +1,5 @@
-from llama_cpp import Llama
-from llama_cpp.llama_chat_format import Llava15ChatHandler
+from llama_cpp import Llama # pyrefly: ignore [missing-import]
+from llama_cpp.llama_chat_format import Llava15ChatHandler # pyrefly: ignore [missing-import]
 import base64
 from utils import load_config
 from PIL import Image # pyrefly: ignore [missing-import]
@@ -8,7 +8,7 @@ import io
 config = load_config()
 
 def convert_bytes_to_base64(image_bytes):
-    encoded_string=  base64.b64encode(image_bytes).decode("utf-8")
+    encoded_string = base64.b64encode(image_bytes).decode("utf-8")
     return encoded_string
 
 def resize_image_if_large(image_bytes, max_dim=800):
