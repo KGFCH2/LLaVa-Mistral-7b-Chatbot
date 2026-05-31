@@ -57,7 +57,7 @@ LLaVa-Mistral-7b-Chatbot/
 │   └── test.py
 ├── app.py                    # Streamlit UI & entry point
 ├── CONTRIBUTION.md
-├── html_templates.py         # Custom Streamlit HTML/CSS components
+├── html_templates.py         # Custom Streamlit CSS components
 ├── INSTRUCTIONS.md           # Detailed architecture & file guide
 ├── LICENSE.md
 ├── README.md
