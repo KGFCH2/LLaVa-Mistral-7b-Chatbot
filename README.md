@@ -55,12 +55,13 @@ LLaVa-Mistral-7b-Chatbot/
 │   └── prompt_templates.py   # Mistral instruction-tuned prompt templates
 ├── tests/
 │   └── test.py
-├── app.py                    # Streamlit UI & entry point
-├── CONTRIBUTION.md
-├── html_templates.py         # Custom Streamlit CSS components
+├── .gitignore
+├── CONTRIBUTION.md           # Contributions guideline
 ├── INSTRUCTIONS.md           # Detailed architecture & file guide
-├── LICENSE.md
-├── README.md
+├── LICENSE.md                # License file
+├── README.md                 # Project documentation
+├── app.py                    # Streamlit UI & entry point
+├── html_templates.py         # Custom Streamlit CSS components
 └── requirements.txt
 ```
 
