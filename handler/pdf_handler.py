@@ -1,6 +1,6 @@
 from langchain_core.documents import Document # pyrefly: ignore [missing-import]
-from llm_chains import load_vectordb, create_embeddings
-from utils import load_config
+from llm.llm_chains import load_vectordb, create_embeddings
+from core.utils import load_config
 import pypdfium2 # pyrefly: ignore [missing-import]
 from langchain_text_splitters import RecursiveCharacterTextSplitter # pyrefly: ignore [missing-import]
 import re

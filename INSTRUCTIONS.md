@@ -13,15 +13,17 @@ Converso is built with a modular architecture that separates the **UI (Streamlit
 | File Name | Working Principle | Emoji |
 | :--- | :--- | :---: |
 | **`app.py`** | The main entry point. Orchestrates the Streamlit UI, manages session state, and coordinates between the different handlers. It implements the new tabbed layout for tools. | 🏠 |
-| **`llm_chains.py`** | The brain of the app. Built using LangChain, it constructs the conversation chains, initializes the LLMs, and manages the Vector DB. Includes a `MockLLM` fallback. | ⛓️ |
-| **`database_operations.py`** | Handles persistent storage of chat histories using SQLite. Manages session creation, message logging, deletion, and renaming. | 💾 |
-| **`pdf_handler.py`** | Logic for processing PDF documents. It handles text extraction, chunking, and indexing into ChromaDB for Retrieval-Augmented Generation (RAG). | 📄 |
-| **`image_handler.py`** | Interface for the LLaVA (Large Language-and-Vision Assistant). Processes image bytes and runs them through the multimodal GGUF model for visual understanding. | 🖼️ |
-| **`audio_handler.py`** | Audio processing module. Utilizes the Whisper model (via Transformers) to transcribe audio uploads or mic recordings into text for the LLM. | 🎙️ |
+| **`endpoint/api.py`** | API endpoints & routes for external integrations. Exposes chat, image, audio, and PDF processing via REST endpoints. | 🔌 |
+| **`endpoint/schemas.py`** | Pydantic models for API request/response validation. Defines data structures for all API interactions. | 📋 |
+| **`handler/audio_handler.py`** | Audio processing module. Utilizes the Whisper model (via Transformers) to transcribe audio uploads or mic recordings into text for the LLM. | 🎙️ |
+| **`handler/image_handler.py`** | Interface for the LLaVA (Large Language-and-Vision Assistant). Processes image bytes and runs them through the multimodal GGUF model for visual understanding. | 🖼️ |
+| **`handler/pdf_handler.py`** | Logic for processing PDF documents. It handles text extraction, chunking, and indexing into ChromaDB for Retrieval-Augmented Generation (RAG). | 📄 |
+| **`llm/llm_chains.py`** | The brain of the app. Built using LangChain, it constructs the conversation chains, initializes the LLMs, and manages the Vector DB. Includes a `MockLLM` fallback. | ⛓️ |
+| **`llm/prompt_templates.py`** | Central repository for instruction-tuned prompts. Ensures the LLM receives the correct context format for both general chat and PDF-specific RAG. | 📝 |
+| **`db/database_operations.py`** | Handles persistent storage of chat histories using SQLite. Manages session creation, message logging, deletion, and renaming. | 💾 |
+| **`core/utils.py`** | Shared utility functions, primarily used for loading the `core/config.yaml` and generating unique timestamps for chat sessions. | 🛠️ |
+| **`core/config.yaml`** | The single source of truth for all configurations, including model paths, hardware settings (GPU/CPU), and UI parameters. | ⚙️ |
 | **`html_templates.py`** | Contains the custom CSS system. Injects premium glassmorphism styles, hover effects, and chat bubble aesthetics into the Streamlit app. | 🎨 |
-| **`prompt_templates.py`** | Central repository for instruction-tuned prompts. Ensures the LLM receives the correct context format for both general chat and PDF-specific RAG. | 📝 |
-| **`utils.py`** | Shared utility functions, primarily used for loading the `config.yaml` and generating unique timestamps for chat sessions. | 🛠️ |
-| **`config.yaml`** | The single source of truth for all configurations, including model paths, hardware settings (GPU/CPU), and UI parameters. | ⚙️ |
 
 ---
 
@@ -34,7 +36,7 @@ Users can interact via three main "Tool Tabs" in the sidebar:
 - **🎙️ Audio**: Voice input is transcribed to text instantly and sent as a prompt to the main LLM.
 
 ### 2. Session Management 📂
-Every conversation is assigned a unique ID. 
+Every conversation is assigned a unique ID.
 - **Persistence**: Messages are saved to `chat_sessions/chat_sessions.db`.
 - **Renaming**: Users can customize session names in the "Session Settings" expander.
 - **Cleanup**: Sessions can be deleted individually, or the model cache can be reset via the UI.
@@ -46,4 +48,4 @@ Every conversation is assigned a unique ID.
 ---
 
 > [!NOTE]
-> All models are run **locally**. No data leaves your machine. ensure you have the appropriate GGUF files in the `models/` directory as specified in `config.yaml`.
+> All models are run **locally**. No data leaves your machine. ensure you have the appropriate GGUF files in the `models/` directory as specified in `core/config.yaml`.

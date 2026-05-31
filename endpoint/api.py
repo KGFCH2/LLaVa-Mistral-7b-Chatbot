@@ -1,13 +1,13 @@
 from typing import List, Optional
 from pydantic import BaseModel # pyrefly: ignore [missing-import]
 import uvicorn # pyrefly: ignore [missing-import]
-from llm_chains import load_normal_chain
-from schemas import ChatMessage, ChatResponse
+from llm.llm_chains import load_normal_chain
+from endpoint.schemas import ChatMessage, ChatResponse
 import sqlite3
 from fastapi import FastAPI, UploadFile, File, Form # pyrefly: ignore [missing-import]
 from fastapi.middleware.cors import CORSMiddleware # pyrefly: ignore [missing-import]
-from database_operations import save_text_message, load_last_k_text_messages, init_db
-from utils import load_config, get_timestamp
+from db.database_operations import save_text_message, load_last_k_text_messages, init_db
+from core.utils import load_config, get_timestamp
 
 config = load_config()
 app = FastAPI()
