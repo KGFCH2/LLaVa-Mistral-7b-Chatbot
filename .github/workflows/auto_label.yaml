@@ -1,0 +1,17 @@
+name: Auto Add NSoC'26 to Issues
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  add_labels:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+
+    steps:
+      - name: Add labels
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          labels: NSoC'26
