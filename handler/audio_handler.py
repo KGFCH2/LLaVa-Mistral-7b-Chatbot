@@ -1,7 +1,7 @@
 from transformers import pipeline # pyrefly: ignore [missing-import]
 import librosa # pyrefly: ignore [missing-import]
 import io
-from utils import load_config
+from core.utils import load_config
 config = load_config()
 
 def convert_bytes_to_array(audio_bytes):

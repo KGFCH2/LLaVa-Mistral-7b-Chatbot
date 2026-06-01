@@ -2,7 +2,7 @@
 
 # 🤖 Converso — LLaVA · Mistral 7B Chatbot
 
-**A fully local, multimodal AI chatbot powered by Mistral 7B & LLaVA.**  
+**A fully local, multimodal AI chatbot powered by Mistral 7B & LLaVA.**
 Chat with text, images, audio, and PDFs — all running on your machine.
 
 [![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
@@ -31,17 +31,37 @@ Chat with text, images, audio, and PDFs — all running on your machine.
 
 ```
 LLaVa-Mistral-7b-Chatbot/
+├── chat_sessions/            # SQLite chat history
+├── chroma_db/                # ChromaDB vector storage
+├── core/
+│   ├── __init__.py
+│   ├── config.yaml           # Config file
+│   └── utils.py              # Config loader & shared utilities
+├── db/
+│   ├── __init__.py
+│   └── database_operations.py # SQLite session persistence
+├── endpoint/
+│   ├── __init__.py
+│   ├── api.py                # API endpoints & routes
+│   └── schemas.py            # API request/response schemas
+├── handler/
+│   ├── __init__.py
+│   ├── audio_handler.py      # Whisper audio transcription
+│   ├── image_handler.py      # LLaVA multimodal image processing
+│   └── pdf_handler.py        # PDF parsing, chunking & vector DB ingestion
+├── llm/
+│   ├── __init__.py
+│   ├── llm_chains.py         # LLM chain builders (normal + PDF RAG)
+│   └── prompt_templates.py   # Mistral instruction-tuned prompt templates
+├── tests/
+│   └── test.py
+├── .gitignore
+├── CONTRIBUTION.md           # Contributions guideline
+├── INSTRUCTIONS.md           # Detailed architecture & file guide
+├── LICENSE.md                # License file
+├── README.md                 # Project documentation
 ├── app.py                    # Streamlit UI & entry point
-├── llm_chains.py             # LLM chain builders (normal + PDF RAG)
-├── INSTRUCTIONS.md           # Detailed architecture & file guide 📖
-├── prompt_templates.py       # Mistral instruction-tuned prompt templates
-├── image_handler.py          # LLaVA multimodal image processing
-├── audio_handler.py          # Whisper audio transcription
-├── pdf_handler.py            # PDF parsing, chunking & vector DB ingestion
-├── database_operations.py    # SQLite session persistence
-├── html_templates.py         # Custom Streamlit HTML/CSS components
-├── utils.py                  # Config loader & shared utilities
-├── config.yaml               # Central configuration file
+├── html_templates.py         # Custom Streamlit CSS components
 └── requirements.txt
 ```
 
@@ -74,7 +94,7 @@ pip install -r requirements.txt
 
 ### 4 · Download models
 
-The project expects GGUF model files at the paths defined in `config.yaml`:
+The project expects GGUF model files at the paths defined in `core/config.yaml`:
 
 ```yaml
 ctransformers:
@@ -87,7 +107,7 @@ llava_model:
   clip_model_path: "./models/llava/Llama-3-Update-3.0-mmproj-model-f16.gguf"
 ```
 
-Create a `models/` directory and place the files there, or update the paths in `config.yaml` to match where your models are stored.
+Create a `models/` directory and place the files there, or update the paths in `core/config.yaml` to match where your models are stored.
 
 ### 5 · Run
 
@@ -99,7 +119,7 @@ streamlit run app.py
 
 ## ⚙️ Configuration Reference
 
-All settings are in `config.yaml`:
+All settings are in `core\config.yaml`:
 
 | Key                             | Default                            | Description                            |
 | :------------------------------ | :--------------------------------- | :------------------------------------- |
@@ -149,10 +169,10 @@ You can download the GGUF models directly from Hugging Face:
 - **LLaVA 1.5 + CLIP**: [mys/GGML/llava-v1.5-7b](https://huggingface.co/mys/GGML/llava-v1.5-7b)
 
 ### 2 · Database Initialization Issues
-If your database fails to initialize or SQLite errors occur, ensure that the path defined in `config.yaml` exists, or delete `chat_sessions/chat_sessions.db` to let the app recreate it automatically.
+If your database fails to initialize or SQLite errors occur, ensure that the path defined in `core/config.yaml` exists, or delete `chat_sessions/chat_sessions.db` to let the app recreate it automatically.
 
 ### 3 · Hardware Acceleration
-To run model inference on GPU, adjust the `gpu_layers` parameter in `config.yaml` to offload layers to your GPU (e.g., CUDA or Apple Metal). Make sure you have installed `llama-cpp-python` compiled with GPU support.
+To run model inference on GPU, adjust the `gpu_layers` parameter in `core/config.yaml` to offload layers to your GPU (e.g., CUDA or Apple Metal). Make sure you have installed `llama-cpp-python` compiled with GPU support.
 
 ---
 

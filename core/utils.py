@@ -1,5 +1,6 @@
 import json
 from datetime import datetime
+from pathlib import Path
 import yaml
 from langchain_core.messages import HumanMessage, AIMessage # pyrefly: ignore [missing-import]
 
@@ -8,11 +9,12 @@ import os
 import sys
 
 def load_config():
-    config_path = "config.yaml"
+    config_path = Path(__file__).parent / "config.yaml"
+    
     if not os.path.exists(config_path):
         print(f"Error: Configuration file '{config_path}' not found.", file=sys.stderr)
         raise FileNotFoundError(f"Configuration file '{config_path}' not found.")
-    
+
     try:
         with open(config_path, "r") as f:
             config = yaml.safe_load(f)

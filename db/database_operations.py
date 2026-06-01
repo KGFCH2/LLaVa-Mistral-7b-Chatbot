@@ -7,7 +7,7 @@ Added safety validations and database exception handling (rollback on error).
 
 import sqlite3
 from typing import Generator
-from utils import load_config
+from core.utils import load_config
 
 config = load_config()
 

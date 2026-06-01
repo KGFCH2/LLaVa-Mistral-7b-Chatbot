@@ -1,14 +1,14 @@
 # pyrefly: ignore [missing-import]
 import streamlit as st
-from llm_chains import load_normal_chain, load_pdf_chat_chain
+from llm.llm_chains import load_normal_chain, load_pdf_chat_chain
 # pyrefly: ignore [missing-import]
 from streamlit_mic_recorder import mic_recorder
-from utils import get_timestamp, load_config
-from image_handler import handle_image
-from audio_handler import transcribe_audio
-from pdf_handler import add_documents_to_db
+from core.utils import get_timestamp, load_config
+from handler.image_handler import handle_image
+from handler.audio_handler import transcribe_audio
+from handler.pdf_handler import add_documents_to_db
 from html_templates import css
-from database_operations import init_db, load_last_k_text_messages, save_text_message, save_image_message, save_audio_message, \
+from db.database_operations import init_db, load_last_k_text_messages, save_text_message, save_image_message, save_audio_message, \
     load_messages, get_all_chat_history_ids, delete_chat_history
 import sqlite3
 
@@ -68,9 +68,9 @@ def main():
     pdf_toggle_col.toggle("PDF Chat", key="pdf_chat", value=False, on_change=clear_cache)
     with voice_rec_col:
         voice_recording = mic_recorder(start_prompt="Record Audio", stop_prompt="Stop recording", just_once=True)
-    
+
     delete_chat_col, clear_cache_col = st.sidebar.columns(2)
-    
+
     if st.session_state.get("confirm_delete", False):
         st.sidebar.warning("Are you sure?")
         yes_col, no_col = st.sidebar.columns(2)
@@ -85,7 +85,7 @@ def main():
         if delete_chat_col.button("Delete Chat Session", use_container_width=True):
             st.session_state.confirm_delete = True
             st.rerun()
-            
+
     clear_cache_col.button("Clear Cache", on_click=clear_cache, use_container_width=True)
 
     chat_container = st.container()

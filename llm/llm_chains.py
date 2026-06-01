@@ -1,4 +1,4 @@
-from prompt_templates import memory_prompt_template, pdf_chat_prompt
+from llm.prompt_templates import memory_prompt_template, pdf_chat_prompt
 
 # Fixed imports for LangChain 2026
 from langchain_classic.chains import LLMChain # pyrefly: ignore [missing-import]
@@ -18,7 +18,7 @@ from langchain_community.llms import Ollama # pyrefly: ignore [missing-import]
 from langchain_text_splitters import RecursiveCharacterTextSplitter # pyrefly: ignore [missing-import]
 
 from operator import itemgetter
-from utils import load_config
+from core.utils import load_config
 import os
 import chromadb # pyrefly: ignore [missing-import]
 
@@ -48,13 +48,13 @@ class MockLLM(LLM):
 def create_llm(model_size="large", model_type=None, model_config=None):
     # Dynamically load config to pick up runtime updates
     current_config = load_config()
-    
+
     if model_type is None:
         model_type = current_config["ctransformers"].get("model_type", "mistral")
-        
+
     if model_config is None:
         model_config = current_config["ctransformers"].get("model_config", {})
-        
+
     model_path = current_config["ctransformers"]["model_path"].get(model_size)
     if not model_path:
         model_path = current_config["ctransformers"]["model_path"]["large"]

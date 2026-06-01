@@ -1,7 +1,7 @@
 from llama_cpp import Llama # pyrefly: ignore [missing-import]
 from llama_cpp.llama_chat_format import Llava15ChatHandler # pyrefly: ignore [missing-import]
 import base64
-from utils import load_config
+from core.utils import load_config
 from PIL import Image # pyrefly: ignore [missing-import]
 import io
 
