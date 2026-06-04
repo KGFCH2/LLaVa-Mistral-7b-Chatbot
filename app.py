@@ -11,15 +11,32 @@ from html_templates import css
 from db.database_operations import init_db, load_last_k_text_messages, save_text_message, save_image_message, save_audio_message, \
     load_messages, get_all_chat_history_ids, delete_chat_history
 import sqlite3
+import logging
+
+logger = logging.getLogger(__name__)
 
 config = load_config()
 
 @st.cache_resource
 def load_chain():
-    if st.session_state.pdf_chat:
-        print("loading pdf chat chain")
-        return load_pdf_chat_chain()
-    return load_normal_chain()
+    """
+    Load appropriate chat chain with error handling.
+
+    Returns:
+        Initialized chat chain or None if loading fails
+
+    Raises:
+        RuntimeError: If chain initialization fails
+    """
+    try:
+        if st.session_state.pdf_chat:
+            logger.info("Loading PDF chat chain...")
+            return load_pdf_chat_chain()
+        logger.info("Loading normal chat chain...")
+        return load_normal_chain()
+    except Exception as e:
+        logger.error(f"Failed to load chat chain: {str(e)}")
+        raise
 
 
 def toggle_pdf_chat():
@@ -105,23 +122,42 @@ def main():
             st.session_state.pdf_uploader_key += 2
 
     if uploaded_audio:
-        transcribed_audio = transcribe_audio(uploaded_audio.getvalue())
-        print(transcribed_audio)
-        llm_chain = load_chain()
-        llm_answer = llm_chain.run(user_input="Summarize this text: " + transcribed_audio, chat_history=[])
-        save_audio_message(st.session_state.db_conn, get_session_key(), "human", uploaded_audio.getvalue())
-        save_text_message(st.session_state.db_conn, get_session_key(), "ai", llm_answer)
-        st.session_state.audio_uploader_key += 2
+        with st.spinner("Processing audio..."):
+            try:
+                transcribed_audio = transcribe_audio(uploaded_audio.getvalue())
+                logger.info(f"Audio transcribed: {len(transcribed_audio)} characters")
+                llm_chain = load_chain()
+                if llm_chain is None:
+                    st.error("Failed to initialize chat chain. Please check logs for details.")
+                else:
+                    llm_answer = llm_chain.run(user_input="Summarize this text: " + transcribed_audio, chat_history=[])
+                    save_audio_message(st.session_state.db_conn, get_session_key(), "human", uploaded_audio.getvalue())
+                    save_text_message(st.session_state.db_conn, get_session_key(), "ai", llm_answer)
+                    st.session_state.audio_uploader_key += 2
+            except Exception as e:
+                logger.error(f"Error processing audio: {str(e)}")
+                st.error(f"Error processing audio: {str(e)}")
 
     if voice_recording:
-        transcribed_audio = transcribe_audio(voice_recording["bytes"])
-        print(transcribed_audio)
-        llm_chain = load_chain()
-        llm_answer = llm_chain.run(user_input=transcribed_audio,
-                                   chat_history=load_last_k_text_messages(st.session_state.db_conn, get_session_key(),
-                                                                          config["chat_config"]["chat_memory_length"]))
-        save_audio_message(st.session_state.db_conn, get_session_key(), "human", voice_recording["bytes"])
-        save_text_message(st.session_state.db_conn, get_session_key(), "ai", llm_answer)
+        with st.spinner("Processing voice input..."):
+            try:
+                transcribed_audio = transcribe_audio(voice_recording["bytes"])
+                logger.info(f"Voice transcribed: {len(transcribed_audio)} characters")
+                llm_chain = load_chain()
+                if llm_chain is None:
+                    st.error("Failed to initialize chat chain. Please check logs for details.")
+                else:
+                    chat_history = load_last_k_text_messages(
+                        st.session_state.db_conn,
+                        get_session_key(),
+                        config["chat_config"]["chat_memory_length"]
+                    )
+                    llm_answer = llm_chain.run(user_input=transcribed_audio, chat_history=chat_history)
+                    save_audio_message(st.session_state.db_conn, get_session_key(), "human", voice_recording["bytes"])
+                    save_text_message(st.session_state.db_conn, get_session_key(), "ai", llm_answer)
+            except Exception as e:
+                logger.error(f"Error processing voice: {str(e)}")
+                st.error(f"Error processing voice: {str(e)}")
 
     if user_input:
         if uploaded_image:
@@ -133,13 +169,27 @@ def main():
                 user_input = None
 
         if user_input:
-            llm_chain = load_chain()
-            llm_answer = llm_chain.run(user_input=user_input,
-                                       chat_history=load_last_k_text_messages(st.session_state.db_conn, get_session_key(), config["chat_config"][
-                                           "chat_memory_length"]))
-            save_text_message(st.session_state.db_conn, get_session_key(), "human", user_input)
-            save_text_message(st.session_state.db_conn, get_session_key(), "ai", llm_answer)
-            user_input = None
+            with st.spinner("Generating response..."):
+                try:
+                    llm_chain = load_chain()
+                    if llm_chain is None:
+                        st.error("Failed to initialize chat chain. Please refresh the page and try again.")
+                    else:
+                        chat_history = load_last_k_text_messages(
+                            st.session_state.db_conn,
+                            get_session_key(),
+                            config["chat_config"]["chat_memory_length"]
+                        )
+                        llm_answer = llm_chain.run(user_input=user_input, chat_history=chat_history)
+                        save_text_message(st.session_state.db_conn, get_session_key(), "human", user_input)
+                        save_text_message(st.session_state.db_conn, get_session_key(), "ai", llm_answer)
+                        user_input = None
+                except RuntimeError as e:
+                    logger.error(f"Chat chain error: {str(e)}")
+                    st.error(f"Chat error: {str(e)}")
+                except Exception as e:
+                    logger.error(f"Unexpected error during chat: {str(e)}")
+                    st.error(f"An unexpected error occurred: {str(e)}")
 
     if (st.session_state.session_key != "new_session") != (st.session_state.new_session_key != None):
         with chat_container:
