@@ -3,13 +3,17 @@ database_operations.py  (refactored for FastAPI & Streamlit compatibility)
 
 Every function receives an explicit `conn: sqlite3.Connection` argument.
 Added safety validations and database exception handling (rollback on error).
+Includes encryption support for sensitive chat data.
 """
 
 import sqlite3
 from typing import Generator
+import logging
 from core.utils import load_config
+from core.encryption import encrypt_text, decrypt_text, encrypt_binary, decrypt_binary, is_encryption_available, EncryptionError
 
 config = load_config()
+logger = logging.getLogger(__name__)
 
 
 def get_db() -> Generator[sqlite3.Connection, None, None]:
@@ -47,56 +51,140 @@ def init_db() -> None:
 
 def save_text_message(conn: sqlite3.Connection, chat_history_id: str,
                       sender_type: str, text: str) -> None:
+    """
+    Save encrypted text message to database.
+
+    Args:
+        conn: Database connection
+        chat_history_id: Session ID
+        sender_type: "human" or "ai"
+        text: Message text to encrypt and store
+
+    Raises:
+        ValueError: If chat_history_id or sender_type is empty
+        EncryptionError: If encryption fails
+        sqlite3.Error: If database operation fails
+    """
     if not chat_history_id or not sender_type:
         raise ValueError("chat_history_id and sender_type cannot be empty")
     try:
+        # Encrypt text before storing
+        encrypted_text = encrypt_text(text)
+        logger.debug(f"Encrypted text message ({len(text)} chars -> {len(encrypted_text)} bytes)")
+
         conn.execute(
             "INSERT INTO messages (chat_history_id, sender_type, message_type, text_content) "
             "VALUES (?, ?, 'text', ?)",
-            (chat_history_id, sender_type, text),
+            (chat_history_id, sender_type, sqlite3.Binary(encrypted_text)),
         )
         conn.commit()
+        logger.info(f"Text message saved: {chat_history_id}/{sender_type}")
+    except EncryptionError as e:
+        conn.rollback()
+        logger.error(f"Encryption error saving text message: {e}")
+        raise
     except sqlite3.Error as e:
         conn.rollback()
-        print(f"Error saving text message: {e}")
+        logger.error(f"Database error saving text message: {e}")
         raise e
 
 
 def save_image_message(conn: sqlite3.Connection, chat_history_id: str,
                        sender_type: str, image_bytes: bytes) -> None:
+    """
+    Save encrypted image message to database.
+
+    Args:
+        conn: Database connection
+        chat_history_id: Session ID
+        sender_type: "human" or "ai"
+        image_bytes: Image data to encrypt and store
+
+    Raises:
+        ValueError: If chat_history_id or sender_type is empty
+        EncryptionError: If encryption fails
+        sqlite3.Error: If database operation fails
+    """
     if not chat_history_id or not sender_type:
         raise ValueError("chat_history_id and sender_type cannot be empty")
     try:
+        # Encrypt image before storing
+        encrypted_image = encrypt_binary(image_bytes)
+        logger.debug(f"Encrypted image ({len(image_bytes)} bytes -> {len(encrypted_image)} bytes)")
+
         conn.execute(
             "INSERT INTO messages (chat_history_id, sender_type, message_type, blob_content) "
             "VALUES (?, ?, 'image', ?)",
-            (chat_history_id, sender_type, sqlite3.Binary(image_bytes)),
+            (chat_history_id, sender_type, sqlite3.Binary(encrypted_image)),
         )
         conn.commit()
+        logger.info(f"Image message saved: {chat_history_id}/{sender_type}")
+    except EncryptionError as e:
+        conn.rollback()
+        logger.error(f"Encryption error saving image message: {e}")
+        raise
     except sqlite3.Error as e:
         conn.rollback()
-        print(f"Error saving image message: {e}")
+        logger.error(f"Database error saving image message: {e}")
         raise e
 
 
 def save_audio_message(conn: sqlite3.Connection, chat_history_id: str,
                        sender_type: str, audio_bytes: bytes) -> None:
+    """
+    Save encrypted audio message to database.
+
+    Args:
+        conn: Database connection
+        chat_history_id: Session ID
+        sender_type: "human" or "ai"
+        audio_bytes: Audio data to encrypt and store
+
+    Raises:
+        ValueError: If chat_history_id or sender_type is empty
+        EncryptionError: If encryption fails
+        sqlite3.Error: If database operation fails
+    """
     if not chat_history_id or not sender_type:
         raise ValueError("chat_history_id and sender_type cannot be empty")
     try:
+        # Encrypt audio before storing
+        encrypted_audio = encrypt_binary(audio_bytes)
+        logger.debug(f"Encrypted audio ({len(audio_bytes)} bytes -> {len(encrypted_audio)} bytes)")
+
         conn.execute(
             "INSERT INTO messages (chat_history_id, sender_type, message_type, blob_content) "
             "VALUES (?, ?, 'audio', ?)",
-            (chat_history_id, sender_type, sqlite3.Binary(audio_bytes)),
+            (chat_history_id, sender_type, sqlite3.Binary(encrypted_audio)),
         )
         conn.commit()
+        logger.info(f"Audio message saved: {chat_history_id}/{sender_type}")
+    except EncryptionError as e:
+        conn.rollback()
+        logger.error(f"Encryption error saving audio message: {e}")
+        raise
     except sqlite3.Error as e:
         conn.rollback()
-        print(f"Error saving audio message: {e}")
+        logger.error(f"Database error saving audio message: {e}")
         raise e
 
 
 def load_messages(conn: sqlite3.Connection, chat_history_id: str) -> list:
+    """
+    Load and decrypt messages from database.
+
+    Args:
+        conn: Database connection
+        chat_history_id: Session ID
+
+    Returns:
+        List of decrypted messages
+
+    Raises:
+        ValueError: If chat_history_id is empty
+        EncryptionError: If decryption fails
+        sqlite3.Error: If database operation fails
+    """
     if not chat_history_id:
         raise ValueError("chat_history_id cannot be empty")
     try:
@@ -109,21 +197,54 @@ def load_messages(conn: sqlite3.Connection, chat_history_id: str) -> list:
         result = []
         for row in rows:
             message_id, sender_type, message_type, text_content, blob_content = row
-            content = text_content if message_type == "text" else blob_content
-            result.append({
-                "message_id":   message_id,
-                "sender_type":  sender_type,
-                "message_type": message_type,
-                "content":      content,
-            })
+
+            try:
+                if message_type == "text":
+                    # Decrypt text content
+                    content = decrypt_text(text_content) if text_content else ""
+                else:
+                    # Decrypt binary content (image/audio)
+                    content = decrypt_binary(blob_content) if blob_content else b""
+
+                result.append({
+                    "message_id":   message_id,
+                    "sender_type":  sender_type,
+                    "message_type": message_type,
+                    "content":      content,
+                })
+                logger.debug(f"Message {message_id} decrypted successfully")
+            except EncryptionError as e:
+                logger.error(f"Failed to decrypt message {message_id}: {str(e)}")
+                raise
+
+        logger.info(f"Loaded {len(result)} decrypted messages for {chat_history_id}")
         return result
+    except EncryptionError as e:
+        logger.error(f"Decryption error loading messages: {e}")
+        raise
     except sqlite3.Error as e:
-        print(f"Error loading messages: {e}")
+        logger.error(f"Database error loading messages: {e}")
         raise e
 
 
 def load_last_k_text_messages(conn: sqlite3.Connection,
                                chat_history_id: str, k: int) -> list:
+    """
+    Load and decrypt last k text messages from database.
+
+    Args:
+        conn: Database connection
+        chat_history_id: Session ID
+        k: Number of messages to load
+
+    Returns:
+        List of decrypted text messages in chronological order
+
+    Raises:
+        ValueError: If chat_history_id is empty
+        EncryptionError: If decryption fails
+        sqlite3.Error: If database operation fails
+    """
     if not chat_history_id:
         raise ValueError("chat_history_id cannot be empty")
     try:
@@ -138,17 +259,31 @@ def load_last_k_text_messages(conn: sqlite3.Connection,
             (chat_history_id, k),
         ).fetchall()
 
-        return [
-            {
-                "message_id":   row[0],
-                "sender_type":  row[1],
-                "message_type": row[2],
-                "content":      row[3],
-            }
-            for row in reversed(rows)
-        ]
+        result = []
+        for row in reversed(rows):
+            try:
+                message_id, sender_type, message_type, text_content = row
+                # Decrypt text content
+                decrypted_content = decrypt_text(text_content) if text_content else ""
+
+                result.append({
+                    "message_id":   message_id,
+                    "sender_type":  sender_type,
+                    "message_type": message_type,
+                    "content":      decrypted_content,
+                })
+                logger.debug(f"Message {message_id} decrypted successfully")
+            except EncryptionError as e:
+                logger.error(f"Failed to decrypt message {message_id}: {str(e)}")
+                raise
+
+        logger.info(f"Loaded {len(result)} decrypted text messages for {chat_history_id}")
+        return result
+    except EncryptionError as e:
+        logger.error(f"Decryption error loading text messages: {e}")
+        raise
     except sqlite3.Error as e:
-        print(f"Error loading last k text messages: {e}")
+        logger.error(f"Database error loading last k text messages: {e}")
         raise e
 
 
