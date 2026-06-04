@@ -19,8 +19,15 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter # pyrefly: i
 
 from operator import itemgetter
 from core.utils import load_config
+from core.model_loader import (
+    ModelLoadError, ModelNotFoundError, ConfigurationError,
+    safe_model_create, with_model_error_handling
+)
+import logging
 import os
 import chromadb # pyrefly: ignore [missing-import]
+
+logger = logging.getLogger(__name__)
 
 config = load_config()
 
@@ -46,25 +53,58 @@ class MockLLM(LLM):
 
 
 def create_llm(model_size="large", model_type=None, model_config=None):
-    # Dynamically load config to pick up runtime updates
-    current_config = load_config()
+    """
+    Create language model with comprehensive error handling and recovery.
 
-    if model_type is None:
-        model_type = current_config["ctransformers"].get("model_type", "mistral")
+    Falls back to MockLLM if model loading fails, with detailed logging
+    for debugging purposes.
 
-    if model_config is None:
-        model_config = current_config["ctransformers"].get("model_config", {})
+    Args:
+        model_size: Size of model (small, medium, large)
+        model_type: Type of model (mistral, neural-chat, etc)
+        model_config: Model configuration dictionary
 
-    model_path = current_config["ctransformers"]["model_path"].get(model_size)
-    if not model_path:
-        model_path = current_config["ctransformers"]["model_path"]["large"]
+    Returns:
+        CTransformers model or MockLLM as fallback
+    """
+    try:
+        current_config = load_config()
 
-    if not os.path.exists(model_path):
-        print(f"Model path {model_path} not found. Switching to Mock Mode.")
+        if model_type is None:
+            model_type = current_config["ctransformers"].get("model_type", "mistral")
+
+        if model_config is None:
+            model_config = current_config["ctransformers"].get("model_config", {})
+
+        model_path = current_config["ctransformers"]["model_path"].get(model_size)
+        if not model_path:
+            logger.warning(f"Model path not found for size '{model_size}', using 'large' as fallback")
+            model_path = current_config["ctransformers"]["model_path"].get("large")
+
+        if not model_path:
+            logger.error("No model paths configured")
+            raise ConfigurationError("No model paths found in configuration")
+
+        if not os.path.exists(model_path):
+            logger.error(f"Model file not found at: {model_path}")
+            raise ModelNotFoundError(f"Model path does not exist: {model_path}")
+
+        logger.info(f"Loading CTransformers model: {model_path} (type: {model_type})")
+
+        llm = CTransformers(model=model_path, model_type=model_type, config=model_config)
+        logger.info("CTransformers model loaded successfully")
+        return llm
+
+    except ModelNotFoundError as e:
+        logger.warning(f"Model loading failed: {str(e)}. Switching to Mock Mode.")
         return MockLLM()
-
-    llm = CTransformers(model=model_path, model_type=model_type, config=model_config)
-    return llm
+    except ConfigurationError as e:
+        logger.error(f"Configuration error: {str(e)}. Switching to Mock Mode.")
+        return MockLLM()
+    except Exception as e:
+        logger.error(f"Unexpected error loading model: {str(e)}. Switching to Mock Mode.")
+        logger.debug(f"Exception type: {type(e).__name__}")
+        return MockLLM()
 
 
 def create_embeddings(embeddings_path=config["embeddings_path"]):
@@ -118,24 +158,142 @@ def create_pdf_chat_runnable(llm, vector_db, prompt):
 
 
 class pdfChatChain:
+    """PDF chat chain with error handling and recovery."""
 
     def __init__(self):
-        vector_db = load_vectordb(create_embeddings())
-        llm = create_llm()
-        prompt = create_prompt_from_template(pdf_chat_prompt)
-        self.llm_chain = create_pdf_chat_runnable(llm, vector_db, prompt)
+        """
+        Initialize PDF chat chain with comprehensive error handling.
+
+        Logs all loading steps and provides graceful fallbacks if components fail.
+        """
+        self.llm_chain = None
+        self.error = None
+
+        try:
+            logger.info("Initializing PDF chat chain...")
+
+            logger.debug("Loading vector database...")
+            try:
+                embeddings = create_embeddings()
+                logger.info("Embeddings created successfully")
+            except Exception as e:
+                logger.error(f"Failed to create embeddings: {str(e)}")
+                raise
+
+            try:
+                vector_db = load_vectordb(embeddings)
+                logger.info("Vector database loaded successfully")
+            except Exception as e:
+                logger.error(f"Failed to load vector database: {str(e)}")
+                raise
+
+            logger.debug("Creating language model...")
+            llm = create_llm()
+            logger.info("Language model created successfully")
+
+            logger.debug("Creating prompt template...")
+            prompt = create_prompt_from_template(pdf_chat_prompt)
+            logger.info("Prompt template created successfully")
+
+            logger.debug("Creating PDF chat runnable...")
+            self.llm_chain = create_pdf_chat_runnable(llm, vector_db, prompt)
+            logger.info("PDF chat chain initialized successfully")
+
+        except Exception as e:
+            logger.error(f"Failed to initialize PDF chat chain: {str(e)}")
+            logger.debug(f"Exception type: {type(e).__name__}")
+            self.error = str(e)
+            self.llm_chain = None
 
     def run(self, user_input, chat_history):
-        print("Pdf chat chain is running...")
-        return self.llm_chain.invoke(input={"human_input": user_input, "history": chat_history})
+        """
+        Run PDF chat chain with error handling.
+
+        Args:
+            user_input: User query
+            chat_history: Previous chat messages
+
+        Returns:
+            Model response or error message
+
+        Raises:
+            RuntimeError: If chain is not initialized
+        """
+        if self.llm_chain is None:
+            error_msg = self.error or "PDF chat chain initialization failed"
+            logger.error(f"Cannot run chat: {error_msg}")
+            raise RuntimeError(f"PDF chat chain not available: {error_msg}")
+
+        try:
+            logger.info("Running PDF chat chain...")
+            result = self.llm_chain.invoke(input={"human_input": user_input, "history": chat_history})
+            logger.info("PDF chat chain executed successfully")
+            return result
+        except Exception as e:
+            logger.error(f"Error during PDF chat execution: {str(e)}")
+            raise
 
 
 class chatChain:
+    """Standard chat chain with error handling and recovery."""
 
     def __init__(self):
-        llm = create_llm()
-        chat_prompt = create_prompt_from_template(memory_prompt_template)
-        self.llm_chain = create_llm_chain(llm, chat_prompt)
+        """
+        Initialize chat chain with comprehensive error handling.
+
+        Logs all loading steps and provides graceful fallbacks if components fail.
+        """
+        self.llm_chain = None
+        self.error = None
+
+        try:
+            logger.info("Initializing chat chain...")
+
+            logger.debug("Creating language model...")
+            llm = create_llm()
+            logger.info("Language model created successfully")
+
+            logger.debug("Creating prompt template...")
+            chat_prompt = create_prompt_from_template(memory_prompt_template)
+            logger.info("Prompt template created successfully")
+
+            logger.debug("Creating LLM chain...")
+            self.llm_chain = create_llm_chain(llm, chat_prompt)
+            logger.info("Chat chain initialized successfully")
+
+        except Exception as e:
+            logger.error(f"Failed to initialize chat chain: {str(e)}")
+            logger.debug(f"Exception type: {type(e).__name__}")
+            self.error = str(e)
+            self.llm_chain = None
 
     def run(self, user_input, chat_history):
-        return self.llm_chain.invoke(input={"human_input": user_input, "history": chat_history}, stop=["Human:"])["text"]
+        """
+        Run chat chain with error handling.
+
+        Args:
+            user_input: User query
+            chat_history: Previous chat messages
+
+        Returns:
+            Model response or error message
+
+        Raises:
+            RuntimeError: If chain is not initialized
+        """
+        if self.llm_chain is None:
+            error_msg = self.error or "Chat chain initialization failed"
+            logger.error(f"Cannot run chat: {error_msg}")
+            raise RuntimeError(f"Chat chain not available: {error_msg}")
+
+        try:
+            logger.info("Running chat chain...")
+            result = self.llm_chain.invoke(
+                input={"human_input": user_input, "history": chat_history},
+                stop=["Human:"]
+            )
+            logger.info("Chat chain executed successfully")
+            return result["text"]
+        except Exception as e:
+            logger.error(f"Error during chat execution: {str(e)}")
+            raise
