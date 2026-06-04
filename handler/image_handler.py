@@ -2,6 +2,8 @@ from llama_cpp import Llama # pyrefly: ignore [missing-import]
 from llama_cpp.llama_chat_format import Llava15ChatHandler # pyrefly: ignore [missing-import]
 import base64
 from core.utils import load_config
+from core.image_cache import get_cached_image, cache_image
+from core.logger import app_logger, log_errors
 from PIL import Image # pyrefly: ignore [missing-import]
 import io
 
@@ -30,16 +32,36 @@ def resize_image_if_large(image_bytes, max_dim=800):
         print(f"Warning: Image resize failed: {e}")
     return image_bytes
 
+@log_errors(app_logger)
 def handle_image(image_bytes, user_input):
-    # Retrieve configuration with fallback support to prevent KeyErrors
+    # Check cache first to avoid re-processing identical images
+    cached_result = get_cached_image(image_bytes)
+    if cached_result:
+        app_logger.debug("Using cached image processing result")
+        image_base64 = cached_result["base64"]
+    else:
+        # Retrieve configuration with fallback support to prevent KeyErrors
+        moondream_config = config.get("moondream", {})
+        clip_model_path = moondream_config.get("clip_model_path") or config.get("llava_model", {}).get("clip_model_path")
+        model_path = moondream_config.get("model_path") or config.get("llava_model", {}).get("llava_model_path")
+
+        if not clip_model_path or not model_path:
+            raise ValueError("Model paths for LLavA/Moondream model or CLIP vision model are not configured.")
+
+        # Resize large images to optimize local performance
+        max_dim = config.get("system_config", {}).get("max_image_dimension", 800)
+        resized_bytes = resize_image_if_large(image_bytes, max_dim=max_dim)
+        image_base64 = convert_bytes_to_base64(resized_bytes)
+
+        # Cache the processed result to avoid re-encoding identical images
+        cache_image(image_bytes, {"resized_bytes": resized_bytes, "base64": image_base64})
+        app_logger.debug("Cached image processing result")
+
+    # Using moondream/llava model for image description via llama-cpp-python
     moondream_config = config.get("moondream", {})
     clip_model_path = moondream_config.get("clip_model_path") or config.get("llava_model", {}).get("clip_model_path")
     model_path = moondream_config.get("model_path") or config.get("llava_model", {}).get("llava_model_path")
-    
-    if not clip_model_path or not model_path:
-        raise ValueError("Model paths for LLavA/Moondream model or CLIP vision model are not configured.")
 
-    # Using moondream/llava model for image description via llama-cpp-python
     chat_handler = Llava15ChatHandler(
         clip_model_path=clip_model_path
     )
@@ -49,11 +71,6 @@ def handle_image(image_bytes, user_input):
         chat_handler=chat_handler,
         n_ctx=2048,  # n_ctx should be sufficient for the image and text
     )
-
-    # Resize large images to optimize local performance
-    max_dim = config.get("system_config", {}).get("max_image_dimension", 800)
-    resized_bytes = resize_image_if_large(image_bytes, max_dim=max_dim)
-    image_base64 = convert_bytes_to_base64(resized_bytes)
 
     response = llm.create_chat_completion(
         messages=[
