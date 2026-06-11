@@ -207,3 +207,4 @@ def safe_model_create(create_func, model_name: str, *args, **kwargs) -> Optional
         logger.error(f"Failed to create model '{model_name}': {str(e)}")
         logger.debug(traceback.format_exc())
         return None
+
