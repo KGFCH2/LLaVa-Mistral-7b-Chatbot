@@ -260,3 +260,4 @@ def is_encryption_available() -> bool:
         return _manager.cipher is not None
     except Exception:
         return False
+
