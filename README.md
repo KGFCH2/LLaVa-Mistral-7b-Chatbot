@@ -182,3 +182,4 @@ To run model inference on GPU, adjust the `gpu_layers` parameter in `core/config
 2. Create a feature branch: `git checkout -b feat/your-feature`
 3. Commit your changes: `git commit -m "feat: add your feature"`
 4. Push and open a Pull Request
+
