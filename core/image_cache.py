@@ -121,3 +121,4 @@ def clear_image_cache() -> None:
 def get_cache_stats() -> Dict[str, int]:
     """Get image cache statistics."""
     return image_cache.stats()
+
