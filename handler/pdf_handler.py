@@ -45,3 +45,4 @@ def add_documents_to_db(pdfs_bytes):
     vector_db = load_vectordb(create_embeddings())
     vector_db.add_documents(documents)
     print("Documents added to db.")
+
