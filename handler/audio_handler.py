@@ -33,3 +33,4 @@ def transcribe_audio(audio_bytes):
     except Exception as e:
         print(f"Error during audio transcription: {e}")
         return f"[Transcription Error: {str(e)}]"
+
