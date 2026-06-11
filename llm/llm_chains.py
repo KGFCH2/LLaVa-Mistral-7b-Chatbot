@@ -297,3 +297,4 @@ class chatChain:
         except Exception as e:
             logger.error(f"Error during chat execution: {str(e)}")
             raise
+
