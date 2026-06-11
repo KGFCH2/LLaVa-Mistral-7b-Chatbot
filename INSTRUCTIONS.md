@@ -49,3 +49,4 @@ Every conversation is assigned a unique ID.
 
 > [!NOTE]
 > All models are run **locally**. No data leaves your machine. ensure you have the appropriate GGUF files in the `models/` directory as specified in `core/config.yaml`.
+
