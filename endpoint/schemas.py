@@ -3,14 +3,14 @@ from typing import List, Optional
 from pydantic import BaseModel, Field 
 
 
-class ChatRequest(BaseModel):
-    session_id: str = Field(..., description="Unique session identifier")
-    message:    str = Field(..., min_length=1, description="User's text message")
+class ChatMessage(BaseModel):
+    chat_history_id: str = Field(..., description="Unique session identifier")
+    content: str = Field(..., min_length=1, description="User's text message")
 
 
 class ChatResponse(BaseModel):
-    session_id: str
-    reply:      str
+    chat_history_id: str
+    content: str
 
 
 class SessionListResponse(BaseModel):

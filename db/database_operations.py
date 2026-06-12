@@ -18,9 +18,12 @@ logger = logging.getLogger(__name__)
 
 def get_db() -> Generator[sqlite3.Connection, None, None]:
     db_path = config["chat_sessions_database_path"]
-    conn = sqlite3.connect(db_path)
+    conn = sqlite3.connect(db_path, timeout=30.0)
     conn.row_factory = sqlite3.Row
     try:
+        # Enable WAL mode and standard concurrency pragmas
+        conn.execute("PRAGMA journal_mode=WAL;")
+        conn.execute("PRAGMA synchronous=NORMAL;")
         yield conn
     finally:
         conn.close()
@@ -28,8 +31,10 @@ def get_db() -> Generator[sqlite3.Connection, None, None]:
 
 def init_db() -> None:
     db_path = config["chat_sessions_database_path"]
-    conn = sqlite3.connect(db_path)
+    conn = sqlite3.connect(db_path, timeout=30.0)
     try:
+        conn.execute("PRAGMA journal_mode=WAL;")
+        conn.execute("PRAGMA synchronous=NORMAL;")
         conn.execute("""
             CREATE TABLE IF NOT EXISTS messages (
                 message_id      INTEGER PRIMARY KEY AUTOINCREMENT,
